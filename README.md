@@ -1,15 +1,9 @@
 # C1-Project
 1. Week 1
-To be able to run the code, you need to install the following libraries:
-- numpy
-- PIL
-- pathlib
-- tqdm
-- pickle
-- cv2
-- scipy
-- pandas
-- matplotlib
+
+To be able to run the code, you need to install the requirements from the requirements.txt file.
+To do so, you need to run the following command:
+```pip3 install -r requirements.txt```
 
 In order to load the data, in main.py you need to change the path to the dataset folder depending on where you have it located.
 
