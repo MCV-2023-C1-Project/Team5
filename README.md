@@ -27,3 +27,16 @@ The parameters are:
 - color_model: the color model used to extract the histogram. It can be "rgb", "hsv", "lab", "yuv", "ycbcr"
 - bins: the number of bins used to extract the histogram
 - range: the range of the histogram
+
+Code files:
+- `bg_removal.py` contains definitions of classes responsible for the background removal
+- `descriptors.py` contains definitions of classes responsible for the descriptors computation
+- `distances.py` contains definitions of classes responsible for computing distances between 1d NumPy arrays (descriptors)
+- `evaluation_funcs.py` contains functions used to numerically evaluate the quality of the retrieval system
+- `main.py` produces the retrieval result, stores it as a pickle
+- `optuna_search.py` wraps `main.py` into an optuna hyperparameter search
+- `qualitative_test.py` displays queries and retrieval results, along with hints in the terminal
+- `retrieval.py` contains the definition of the core retrieval function
+- `save_masks.py` uses instances of `bg_removal.py` to create and save painting masks for a submission
+- `score_masks.py` quantitatively evaluates produced masks against the ground truth
+- `test_retrieval.py` quantitatively evaluates produced retrieval pickle against the ground truth
