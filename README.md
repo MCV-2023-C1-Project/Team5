@@ -11,8 +11,12 @@ To be able to run the code, you need to install the following libraries:
 - pandas
 - matplotlib
 
-In order to run the code, you need to run the following command:
-```python3 main.py```
+In order to load the data, in main.py you need to change the path to the dataset folder depending on where you have it located.
+
+To run the code, you need to execute the following command:
+```python3 main.py```.
+Other scripts are not mandatory to run to obtain the pickle file
+
 We haven't implemented the command line arguments yet, so you need to change the parameters in the main.py file.
 In line 18 of the main.py file, you can change the number of parameters to get the results, that are automatically saved in the result.pkl file.
 
