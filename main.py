@@ -15,7 +15,9 @@ REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))
 RESULT_OUT_PATH = Path("result.pkl")
 
 # set hyper-parameters
-DESCRIPTOR_FN = Histogram(color_model="yuv", bins=25, range=(0, 255))
+BASE_DESCRIPTOR = Histogram(color_model="yuv", bins=25, range=(0, 255))
+SPLIT_SHAPE = (3, 3)  # (1, 1) is the same as not making spatial at all
+DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)
 K = 10
 DISTANCE_FN = Intersection()
 BG_REMOVAL_FN = RemoveBackground()
