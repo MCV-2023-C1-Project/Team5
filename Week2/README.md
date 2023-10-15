@@ -14,7 +14,7 @@ Default parameters for our model are:
 - ```DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)```
 - ```K = 10```
 - ```DISTANCE_FN = Intersection()```
-- ```BG_REMOVAL_FN = RemoveBackground()```
+- ```BG_REMOVAL_FN = RemoveBackgroundV2()```
 - ```TEXT_DETECTOR = TextDetection()```
 
 The output of the execution of the code is a pickle file with the retrieved objects from the DB for each query image.
@@ -22,10 +22,13 @@ The output of the execution of the code is a pickle file with the retrieved obje
 A quick explanation of the most relevant files used is shown below:
 - ```main.py``` is the main file that needs to be executed to obtain the pickle file.
 - ```descriptors.py``` contains the descriptor class and the spatial descriptor class, used to compute the descriptors.
-- ```distance.py``` contains all the distances classes(Intersection, ChiSquare, Hellinger, L1, L2, Cosine)
-- ```background_removal.py``` contains the background removal class.
+- ```distance.py``` contains all the distances classes(Intersection, ChiSquare, Hellinger, L1, L2, Cosine).
+- ```retrieval.py``` contains function that returns the k most similar images for each image in queries.
+- ```bg_removal.py``` contains the background removal class.
 - ```text_detection.py``` contains the text detection class.
 - ```utils.py``` contains the helper functions used in the code.
 - ```requirements.txt``` contains the libraries needed to run the code.
 - ```score_text.py``` contains the functions used to score the text detection with IoU metric.
+- ```score_masks.py``` contains the functions used to score the masks.
 - ```test_retrieval.py``` contains the functions used to test the retrieval system.
+- ```save_*.py``` contains the functions used to save the necessary files (bbox, masks and cropped images).
