@@ -1,5 +1,5 @@
 # C1-Project
-1. Week 1
+## Week 1
 
 To be able to run the code, you need to install the requirements from the requirements.txt file.
 To do so, you need to run the following command:
