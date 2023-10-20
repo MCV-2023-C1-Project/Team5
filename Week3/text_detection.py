@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-import easyocr
 
 class TextDetection:
     def close_then_open(self, image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
@@ -45,9 +44,7 @@ class TextDetection:
         kernel = np.ones((4, 4), np.uint8)
         dilate = cv2.dilate(imbw, kernel, iterations=3)
         edges = cv2.Canny(dilate, 30, 70)
-        contours, _ = cv2.findContours(
-            edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -62,7 +59,7 @@ class TextDetection:
         if len(bboxes) == 1:
             return bboxes[0]
 
-        #draw the bounding box into the image
+        # draw the bounding box into the image
         return self.get_best_bbox(im, bboxes)
 
     def get_best_bbox(
@@ -83,7 +80,7 @@ class TextDetection:
             mean_intensity = np.mean(sub_image)
             score = abs(mean_intensity - threshold)
 
-            if score > best_score: # and len(text) >= max_text:
+            if score > best_score:  # and len(text) >= max_text:
                 best_score = score
                 best_bbox = bbox
 

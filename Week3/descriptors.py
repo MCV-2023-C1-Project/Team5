@@ -1,8 +1,6 @@
-from typing import Any
 import numpy as np
 import cv2
 from skimage import feature
-import matplotlib.pyplot as plt
 
 
 class Histogram:
