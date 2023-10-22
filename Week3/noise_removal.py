@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from filters import *
@@ -35,10 +34,6 @@ class Salt_Pepper_Noise:
         plt.title('Histogram of Standard Deviation Values')
         plt.xlabel('Standard Deviation')
         plt.ylabel('Frequency')
-
-        # Print or use the normalized bin counts as needed
-        #plt.legend()
-        #plt.show()
         plt.savefig('std/std_{}.png'.format(idx))
         plt.close()
 
@@ -54,20 +49,22 @@ class Salt_Pepper_Noise:
             for column in range(window, width - window):
                 c = self.pixel_contrast(image, row, column)
                 contrast_map[row, column] = c
-
-        """
-        print("Mean : {}".format(np.mean(contrast_map)))
-        print("Max : {}".format(np.max(contrast_map)))
-        print("Median : {}".format(np.median(contrast_map)))
-        """
-
         #self.plot_images(image, contrast_map)
         #self.plot_std_dev(contrast_map, idx=idx)
 
         return True if np.median(contrast_map) >= 7 and np.mean(contrast_map) >= 9 else False
 
+    def kernel_size(self, image, size_factor=0.008):
+        kernel_size = tuple(int(dim * size_factor) for dim in image.shape)
+        # Ensure that the kernel size is odd
+        return tuple(size + 1 if size % 2 == 0 else size for size in kernel_size)
+
     def __call__(self, image, window=1, idx=0):
-        return self.check_if_contrast(image, window=window, idx=idx)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)[:, :, 2]
+        if self.check_if_contrast(hsv, window=window):
+            return NOISE_FILTER(image, kernel_size=3)
+        else:
+            return image
 
 
 
@@ -83,28 +80,11 @@ if __name__ == "__main__":
         print("Image {}".format(idx))
         img = Image.open(img_path)
         image = np.array(img)
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)[:, :, 2]
-        # Load an image
-        #image = cv2.imread('data/Week3/qsd1_w3/00002.jpg')
 
         # Check if the image has salt-and-pepper noise
-        has_salt_and_pepper = HAS_NOISE(hsv, idx=idx)
-
-        if has_salt_and_pepper:
-            kernel_size_factor = 0.008
-            # Adjust kernel size based on image dimensions
-            kernel_size = tuple(int(dim * kernel_size_factor) for dim in image.shape)
-            # Ensure that the kernel size is odd
-            kernel_size = tuple(size + 1 if size % 2 == 0 else size for size in kernel_size)
-
-            denoised_image = NOISE_FILTER(image, kernel_size=3)
-
-            #plot_images(image, denoised_image)
+        denoised_image = HAS_NOISE(image)
+        if True:
             Image.fromarray(denoised_image).save("denoised/{}.png".format(idx))
-            print("Denoised Image")
-        else:
-            Image.fromarray(image).save("denoised/{}.png".format(idx))
-            print("Original Image")
 
 
 
