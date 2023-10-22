@@ -9,6 +9,7 @@ from tqdm import tqdm
 from bg_removal import *
 import os
 from text_detection import *
+from noise_removal import *
 
 # set paths
 QUERY_IMG_DIR = Path(os.path.join("data", "Week2", "qst2_w2"))
@@ -26,6 +27,8 @@ SPLIT_SHAPE = (20, 20)  # (1, 1) is the same as not making spatial at all
 DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)
 K = 10
 DISTANCE_FN = Intersection()
+NOISE_FILTER = Median()
+HAS_NOISE = Salt_Pepper_Noise()
 
 v2 = False
 if QUERY_IMG_DIR.stem[-4:] == "2_w2":
@@ -46,8 +49,10 @@ for img_path in tqdm(
     idx = int(img_path.stem[-5:])
     img = Image.open(img_path)
     img = np.array(img)
+    # Remove noise
+    denoised_img = HAS_NOISE(img)
     # NOTE: text should be detected AFTER bg removal
-    imgs = BG_REMOVAL_FN(img)
+    imgs = BG_REMOVAL_FN(denoised_img)
 
     if v2:
         set_images = []
