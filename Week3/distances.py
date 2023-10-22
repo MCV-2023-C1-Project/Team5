@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from scipy.spatial.distance import cosine
+import editdistance
 
 
 class Euclidean:
@@ -94,4 +95,16 @@ class Cosine:
 
     def __call__(self, a, b):
         result = cosine(a, b)  # cosine distance, no need in *(-1)
+        return result
+
+
+class Edit:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    def __call__(self, a, b):
+        if type(a) == str and type(b) == str:
+            result = editdistance.eval(a, b)
+        else:
+            result = np.inf
         return result

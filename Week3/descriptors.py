@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 from skimage import feature
+import pytesseract
+
 
 
 class Histogram:
@@ -136,3 +138,24 @@ class LocalBinaryPattern:
 
         histogram = np.vstack(histograms).flatten() / image.size
         return histogram
+
+
+class ArtistReader:
+    def __init__(self, text_detector, ocr_fn,
+                 artists_db=None, distance_fn=None):
+        self.text_detector = text_detector
+        self.ocr_fn = ocr_fn
+        self.artists_db = artists_db
+        self.distance_fn = distance_fn
+    
+    def __call__(self, img):
+        x, y, w, h = self.text_detector.detect_text(img)
+        text_img = img[y:y+h, x:x+w]
+        text = pytesseract.image_to_string(text_img)
+        if self.artists_db is None or self.distance_fn is None:
+            return text
+        else:
+            distances = [self.distance_fn(text, artist)
+                        for artist in self.artists_db]
+            result = self.artists_db[np.argmin(distances)[0]]
+            return result
