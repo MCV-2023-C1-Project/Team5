@@ -3,7 +3,20 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from skimage.restoration import denoise_tv_chambolle, denoise_nl_means
+
 QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd1_w3"))
+
+
+def bilateral_filter(image):
+    return cv2.bilateralFilter(image, 9, 75, 75)  # Adjust parameters as needed
+
+def nl_means(image):
+    # Apply Non-Local Means Denoising
+    return denoise_nl_means(image, h=0.1, fast_mode=True)
+
+def mean_filter(image):
+    return cv2.blur(image, (5, 5))
 class ImageNoiseRemoval:
     def __init__(self, image_path):
         self.image = cv2.imread(image_path)
@@ -61,12 +74,13 @@ class ImageNoiseRemoval:
         if self.detect_noise():
             print('removing salt and pepper noise')
             self.image = cv2.medianBlur(self.image, kernel_size)
-    def remove_noise(self):
-        #apply mean filter to remove noise
-        self.image = cv2.blur(self.image, (5, 5))
-
     def save_processed_image(self, output_path):
         cv2.imwrite(output_path, self.image)
+
+    def tvd(self):
+        # Apply Total Variation Denoising
+        if self.detect_noise():
+            self.image = denoise_tv_chambolle(self.image, weight=0.2)
 
     def sharpen_image(self):
         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
@@ -79,15 +93,24 @@ class ImageNoiseRemoval:
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
     data_folder = os.path.join(current_dir, '..', 'data', 'Week3', 'qsd1_w3')
-    input_image_path = os.path.join(data_folder, '00008.jpg')
+    input_image_path = os.path.join(data_folder, f'00008.jpg')
     im = cv2.imread(input_image_path)
     noise_removal = ImageNoiseRemoval(input_image_path)
-    noise_removal.remove_salt_and_pepper_noise()
-    image2 = noise_removal.image
+    im1 = noise_removal.image
+    #noise_removal.remove_salt_and_pepper_noise()
+    #image2 = noise_removal.image.copy()
+    #noise_removal.sharpen_image()
+    #image3 = noise_removal.image
+    #im2 = bilateral_filter(im)
+    noise_removal.tvd()
+    im3 = noise_removal.image
     noise_removal.sharpen_image()
-    image3 = noise_removal.image
-    combined_image = np.hstack((im, image2, image3))
-    cv2.imshow('image with noise, without noise and sharpened', combined_image)
+    im4 = noise_removal.image
+    #im4 = nl_means(im)
+    combined_image = np.hstack((im, im3, im4))
+    #combined_image = np.hstack((im, image2, image3))
+    #cv2.imshow('image with noise, without noise and sharpened', combined_image)
+    cv2.imshow('image filtered by bilateral filter, tvd', combined_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
