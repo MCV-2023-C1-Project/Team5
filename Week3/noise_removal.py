@@ -4,7 +4,9 @@ from filters import *
 from PIL import Image
 import os
 from pathlib import Path
-
+from utils import *
+from text_detection import *
+from PIL import Image, ImageFilter
 
 class Salt_Pepper_Noise:
     def __init__(self, std_mean=9, std_median=7):
@@ -54,17 +56,63 @@ class Salt_Pepper_Noise:
 
         return True if np.median(contrast_map) >= 7 and np.mean(contrast_map) >= 9 else False
 
+    def image_sharpening(self, image):
+        # Apply Laplacian kernel for image sharpening
+        laplacian_kernel = np.array([[0, -1, 0],
+                                     [-1, 4, -1],
+                                     [0, -1, 0]])
+
+        sharpened_image = cv2.filter2D(image, -1, laplacian_kernel)
+        hker, wker = int(image.shape[0] * 0.005), int(image.shape[1] * 0.005)
+        kernel = np.ones((3, 3), np.uint8)
+        dilated = cv2.dilate(sharpened_image, kernel, iterations=1)
+        erode = cv2.erode(dilated, kernel, iterations=5)
+
+        # Combine filtered and original images using a weighted sum
+        alpha = 0.9  # Weight for the original image
+        beta = 0.1  # Weight for the filtered image
+
+        combined_image = cv2.addWeighted(image, alpha, dilated, beta, 0)
+
+        # Display the original and sharpened images
+        plt.subplot(1, 3, 1), plt.imshow(image, cmap='gray')
+        plt.title('Original Image'), plt.xticks([]), plt.yticks([])
+
+        plt.subplot(1, 3, 2), plt.imshow(dilated, cmap='gray')
+        plt.title('Sharpened Image'), plt.xticks([]), plt.yticks([])
+
+        plt.subplot(1, 3, 3), plt.imshow(combined_image, cmap='gray')
+        plt.title('Combined Image'), plt.xticks([]), plt.yticks([])
+
+        plt.show()
+        return combined_image
+
     def kernel_size(self, image, size_factor=0.008):
         kernel_size = tuple(int(dim * size_factor) for dim in image.shape)
-        # Ensure that the kernel size is odd
+        # Minimum kernel size = 3x3
+        kernel_size = tuple(size + 2 if size < 2 else size for size in kernel_size)
+        # Get only odd kernels
         return tuple(size + 1 if size % 2 == 0 else size for size in kernel_size)
 
+    def filter_name(self, original_image, image):
+        NAME_FILTER = Average()
+        bbox_coords = Text_Detection.detect_text(image)
+        x, y, w, h = bbox_coords
+        name_img = original_image[y: y + h, x: x + w]
+        den_name = NAME_FILTER(name_img, kernel_size=3)
+        image[y: y + h, x: x + w] = den_name
+
+        return image
+
+
     def __call__(self, image, window=1, idx=0):
+        original_image = image
         hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)[:, :, 2]
+        #kernel = self.kernel_size(image)
         if self.check_if_contrast(hsv, window=window):
-            return NOISE_FILTER(image, kernel_size=3)
-        else:
-            return image
+            image = self.filter_name(original_image, NOISE_FILTER(image, kernel_size=3))
+
+        return image
 
 
 
@@ -74,6 +122,7 @@ if __name__ == "__main__":
 
     NOISE_FILTER = Median()
     HAS_NOISE = Salt_Pepper_Noise()
+    Text_Detection = TextDetection()
 
     for img_path in QUERY_IMG_DIR.glob("*.jpg"):
         idx = int(img_path.stem[-5:])
@@ -83,6 +132,7 @@ if __name__ == "__main__":
 
         # Check if the image has salt-and-pepper noise
         denoised_image = HAS_NOISE(image)
+
         if True:
             Image.fromarray(denoised_image).save("denoised/{}.png".format(idx))
 

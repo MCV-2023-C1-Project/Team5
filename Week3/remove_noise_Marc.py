@@ -18,8 +18,8 @@ def nl_means(image):
 def mean_filter(image):
     return cv2.blur(image, (5, 5))
 class ImageNoiseRemoval:
-    def __init__(self, image_path):
-        self.image = cv2.imread(image_path)
+    def __init__(self, image):
+        self.image = image
         self.noise_types = {
             'gaussian': self.detect_gaussian_noise,
             'salt_and_pepper': self.detect_salt_and_pepper_noise,
@@ -89,6 +89,14 @@ class ImageNoiseRemoval:
     def apply_dilation(self):
         kernel = np.ones((5, 5), np.uint8)
         self.image = cv2.dilate(self.image, kernel, iterations=1)
+
+    def detect_and_remove_noise(self):
+        if self.detect_salt_and_pepper_noise():
+            self.remove_salt_and_pepper_noise()
+        if self.detect_noise:
+            self.remove_noise()
+        if self.detect_gaussian_noise():
+            self.remove_gaussian_noise()
 
 if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.abspath(__file__))
