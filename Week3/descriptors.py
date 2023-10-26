@@ -121,12 +121,17 @@ class LocalBinaryPattern:
         self.numPoints = numPoints
         self.radius = radius
 
-    def __call__(self, image: np.ndarray) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         histograms = []
         for ch in range(image.shape[2]):
-            lbp = feature.local_binary_pattern(
-                image[:, :, ch], self.numPoints, self.radius, method="uniform"
-            )
+            # Apply the mask to the image
+            if mask is not None:
+                # Apply the mask to the image
+                masked_image = image[:, :, ch] * mask
+            else:
+                masked_image = image[:, :, ch]
+
+            lbp = feature.local_binary_pattern(masked_image, self.numPoints, self.radius, method="uniform")
 
             hist, _ = np.histogram(
                 lbp.ravel(),
@@ -136,7 +141,11 @@ class LocalBinaryPattern:
 
             histograms.append(hist)
 
-        histogram = np.vstack(histograms).flatten() / image.size
+        if mask is not None:
+            histogram = np.vstack(histograms).flatten() / (np.sum(mask) * image.shape[2])
+        else:
+            histogram = np.vstack(histograms).flatten() / image.size
+
         return histogram
 
 
