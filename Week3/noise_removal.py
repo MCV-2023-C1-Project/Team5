@@ -1,17 +1,23 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from filters import *
-from PIL import Image
 import os
-from pathlib import Path
-from utils import *
 from text_detection import *
-from PIL import Image, ImageFilter
+from PIL import Image
+from similar_artist import *
+import pytesseract
+import re
+import matplotlib.pyplot as plt
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 
 class Salt_Pepper_Noise:
-    def __init__(self, std_mean=9, std_median=7):
+    def __init__(self, std_mean=9, std_median=7,
+                 noise_filter=None, name_filter=None,
+                 text_detector=None):
         self.std_mean = std_mean
         self.std_median = std_median
+        self.noise_filter = noise_filter
+        self.text_detector = text_detector
+        self.name_filter = name_filter
 
     def plot_images(self, image, denoised_image):
         # Display the original and denoised images
@@ -94,26 +100,46 @@ class Salt_Pepper_Noise:
         # Get only odd kernels
         return tuple(size + 1 if size % 2 == 0 else size for size in kernel_size)
 
+    def sharp_image(self, image):
+        # Apply Laplacian kernel for image sharpening
+        laplacian_kernel = np.array([[0, -1, 0],
+                                     [-1, 5, -1],
+                                     [0, -1, 0]])
+
+        return cv2.filter2D(image, -1, laplacian_kernel)
+
+    def text_similarities(self, text):
+        REF_CSV_PATH = Path(r"C:\Users\maria\PycharmProjects\C1_CVC\data\Week3\paintings_db_w2d1.csv")
+        ref_set = pd.read_csv(REF_CSV_PATH)
+
+        return most_similar_string(text, ref_set)
+
+    def read_artist(self, image, filtered=False):
+        if not filtered:
+            x, y, w, h = self.text_detector.detect_text(image)
+            image = image[y: y + h, x: x + w]
+        text = pytesseract.image_to_string(image)
+        text = re.sub(r'[^a-zA-Z\s]', '', text)
+        return self.text_similarities(text)
+
     def filter_name(self, original_image, image):
-        NAME_FILTER = Average()
-        bbox_coords = Text_Detection.detect_text(image)
+        bbox_coords = self.text_detector.detect_text(image)
         x, y, w, h = bbox_coords
         name_img = original_image[y: y + h, x: x + w]
-        den_name = NAME_FILTER(name_img, kernel_size=3)
+        den_name = self.name_filter(name_img, kernel_size=3)
+        den_name = self.sharp_image(den_name)
         image[y: y + h, x: x + w] = den_name
-
         return image
 
 
     def __call__(self, image, window=1, idx=0):
         original_image = image
         hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)[:, :, 2]
-        #kernel = self.kernel_size(image)
+        # kernel = self.kernel_size(image)
         if self.check_if_contrast(hsv, window=window):
-            image = self.filter_name(original_image, NOISE_FILTER(image, kernel_size=3))
+            image = self.filter_name(original_image, self.noise_filter(image, kernel_size=3))
 
         return image
-
 
 
 if __name__ == "__main__":
@@ -134,7 +160,7 @@ if __name__ == "__main__":
         denoised_image = HAS_NOISE(image)
 
         if True:
-            Image.fromarray(denoised_image).save("denoised/{}.png".format(idx))
+            Image.fromarray(denoised_image).save("denoised/qsd2/{}.png".format(idx))
 
 
 
