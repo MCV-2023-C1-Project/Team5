@@ -102,6 +102,9 @@ class DiscreteCosineTransform:
         r, c = image.shape[:2]
         r = cv2.getOptimalDFTSize(r)
         c = cv2.getOptimalDFTSize(c)
+        # Ensure even dimensions
+        r += r % 2
+        c += c % 2
         dct_image = cv2.resize(image, (c, r))
 
         for ch in range(image.shape[2]):
