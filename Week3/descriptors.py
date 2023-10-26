@@ -4,7 +4,6 @@ from skimage import feature
 import pytesseract
 
 
-
 class Histogram:
     def __init__(self, color_model="rgb", **kwargs):
         self.color_model = color_model
@@ -98,17 +97,16 @@ class DiscreteCosineTransform:
         self.bins = bins
         self.range = range
 
-    def __call__(self, image: np.ndarray) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         histograms = []
         r, c = image.shape[:2]
-        r, c = cv2.getOptimalDFTSize(r), cv2.getOptimalDFTSize(c)
-        dct_image = cv2.resize(image, (r, c))
+        r = cv2.getOptimalDFTSize(r)
+        c = cv2.getOptimalDFTSize(c)
+        dct_image = cv2.resize(image, (c, r))
 
         for ch in range(image.shape[2]):
             dct = cv2.dct(np.float32(dct_image[:, :, ch]))
-
-            hist, _ = np.histogram(dct.ravel(), bins=self.bins, range=self.range)
-
+            hist = cv2.calcHist([dct], [0], mask, [self.bins], self.range)
             histograms.append(hist)
 
         histogram = np.vstack(histograms).flatten() / image.size
@@ -116,55 +114,47 @@ class DiscreteCosineTransform:
 
 
 class LocalBinaryPattern:
-    def __init__(self, numPoints: int, radius: int) -> None:
-        # Store the number of points and radius
+    def __init__(
+        self,
+        numPoints: int,
+        radius: int,
+        bins: int = 256,
+        range: tuple = (0, 255),
+        method: str = "uniform",
+    ) -> None:
         self.numPoints = numPoints
         self.radius = radius
+        self.method = method
+        self.bins = bins
+        self.range = range
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         histograms = []
         for ch in range(image.shape[2]):
-            # Apply the mask to the image
-            if mask is not None:
-                # Apply the mask to the image
-                masked_image = image[:, :, ch] * mask
-            else:
-                masked_image = image[:, :, ch]
-
-            lbp = feature.local_binary_pattern(masked_image, self.numPoints, self.radius, method="uniform")
-
-            hist, _ = np.histogram(
-                lbp.ravel(),
-                bins=np.arange(0, self.numPoints + 3),
-                range=(0, self.numPoints + 2),
-            )
-
+            lbp = feature.local_binary_pattern(
+                image[:, :, ch], self.numPoints, self.radius, method=self.method
+            ).astype(np.uint8)
+            hist = cv2.calcHist([lbp], [0], mask, [self.bins], self.range)
             histograms.append(hist)
 
-        if mask is not None:
-            histogram = np.vstack(histograms).flatten() / (np.sum(mask) * image.shape[2])
-        else:
-            histogram = np.vstack(histograms).flatten() / image.size
-
+        histogram = np.vstack(histograms).flatten() / image.size
         return histogram
 
 
 class ArtistReader:
-    def __init__(self, text_detector, ocr_fn,
-                 artists_db=None, distance_fn=None):
+    def __init__(self, text_detector, ocr_fn, artists_db=None, distance_fn=None):
         self.text_detector = text_detector
         self.ocr_fn = ocr_fn
         self.artists_db = artists_db
         self.distance_fn = distance_fn
-    
+
     def __call__(self, img):
         x, y, w, h = self.text_detector.detect_text(img)
-        text_img = img[y:y+h, x:x+w]
+        text_img = img[y : y + h, x : x + w]
         text = pytesseract.image_to_string(text_img)
         if self.artists_db is None or self.distance_fn is None:
             return text
         else:
-            distances = [self.distance_fn(text, artist)
-                        for artist in self.artists_db]
+            distances = [self.distance_fn(text, artist) for artist in self.artists_db]
             result = self.artists_db[np.argmin(distances)[0]]
             return result
