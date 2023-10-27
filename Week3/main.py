@@ -14,9 +14,9 @@ from similar_artist import *
 from text_combination import *
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd1_w3"))
+QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qst1_w3"))
 REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))
-RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qsd1_K10.pkl"))
+RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qst1_K10.pkl"))
 
 with_text_combination = True
 
@@ -35,7 +35,7 @@ HAS_NOISE = Salt_Pepper_Noise(noise_filter=NOISE_FILTER,
                               text_detector=TEXT_DETECTOR)
 
 v2 = False
-if QUERY_IMG_DIR.stem[-4:] == "2_w2":
+if QUERY_IMG_DIR.stem[-4:] == "2_w3":
     v2 = True
     BG_REMOVAL_FN = RemoveBackgroundV2()
 else:
@@ -64,6 +64,10 @@ for img_path in tqdm(
     denoised_img = HAS_NOISE(img)
     # Image.fromarray(denoised_img).save("denoised/qsd2/{}.png".format(idx))
     # NOTE: text should be detected AFTER bg removal
+    os.makedirs(path_txt_artists, exist_ok=True)
+    file_name = os.path.join(path_txt_artists, f"{idx:05d}.txt")
+    with open(file_name, 'w'):
+        pass
     if v2:
         imgs = BG_REMOVAL_FN(denoised_img)
         set_images = []
@@ -72,15 +76,16 @@ for img_path in tqdm(
             text_mask = TEXT_DETECTOR.get_text_mask(img)
             set_images.append(DESCRIPTOR_FN(img, text_mask))  # add "idx: descriptor" pair
             artist = Similar_Artist(img)
-            Similar_Artist.save_txt(artist, idx)
+            Similar_Artist.save_txt(artist, file_name)
             artists.append(artist)
         query_set[idx] = set_images
         query_artist[idx] = artists
+
     else:
         text_mask = TEXT_DETECTOR.get_text_mask(denoised_img)
         # text_coords = TEXT_DETECTOR.detect_text(denoised_img)
         artist = Similar_Artist(denoised_img)
-        Similar_Artist.save_txt(artist, idx)
+        Similar_Artist.save_txt(artist, file_name)
         # For color hist
         query_set[idx] = DESCRIPTOR_FN(denoised_img, text_mask)
         query_artist[idx] = artist
@@ -96,7 +101,8 @@ for img_path in tqdm(
     img = np.array(img)
     ref_set[idx] = DESCRIPTOR_FN(img)  # add "idx: descriptor" pair
 
-path_csv_bbdd = Path(os.path.join("data", "Week3", "paintings_db_bbdd.csv"))
+
+path_csv_bbdd = Path("paintings_db_bbdd.csv")
 Compare_Artist = CompareArtist(path_csv_bbdd=path_csv_bbdd)
 
 if v2:
@@ -107,7 +113,7 @@ if v2:
         result_dict = {}
         for idx in query_set.keys():
             q_list = []
-            for query in query_artist[idx]:
+            for query in query_set[idx]:
                 q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
             result_dict[idx] = q_list
 

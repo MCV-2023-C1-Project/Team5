@@ -199,14 +199,15 @@ class ArtistReader:
                 break
         return text
 
-    def save_txt(self, text, idx):
-        os.makedirs(self.txt_path, exist_ok=True)
-        file_name = os.path.join(self.txt_path, f"{idx:05d}.txt")
-        with open(file_name, 'w') as file:
+    def save_txt(self, text, file_name):
+        with open(file_name, 'a') as file:
             file.write(f"{text}\n")
 
     def __call__(self, img):
-        x, y, w, h = self.text_detector.detect_text(img)
+        try:
+            x, y, w, h = self.text_detector.detect_text(img)
+        except TypeError:
+            return [None]
         text_img = img[y: y + h, x: x + w]
         text = pytesseract.image_to_string(text_img)
         text = re.sub(r'[^a-zA-Z\s]', '', text)
