@@ -8,6 +8,8 @@ import easyocr
 import pandas as pd
 import Levenshtein
 import os
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
 
 class Histogram:
     def __init__(self, color_model="rgb", **kwargs):
