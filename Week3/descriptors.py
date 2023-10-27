@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 from skimage import feature
 import pytesseract
-import pywt
 
 class Histogram:
     def __init__(self, color_model="rgb", **kwargs):
@@ -94,27 +93,30 @@ class SpatialDescriptor:
 
 
 class DiscreteCosineTransform:
-    def __init__(self, bins: int = 256, range: tuple = (0, 255)) -> None:
+    def __init__(self, bins: int = 8, num_coeff: int = 4) -> None:
         self.bins = bins
-        self.range = range
+        self.num_coeff = num_coeff
+
+    def compute_zig_zag(self, array: np.ndarray) -> np.ndarray:
+        return np.concatenate(
+            [
+                np.diagonal(array[::-1, :], k)[:: (2 * (k % 2) - 1)]
+                for k in range(1 - array.shape[0], array.shape[0])
+            ]
+        )
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        histograms = []
-        r, c = image.shape[:2]
-        r = cv2.getOptimalDFTSize(r)
-        c = cv2.getOptimalDFTSize(c)
-        # Ensure even dimensions
-        r += r % 2
-        c += c % 2
-        dct_image = cv2.resize(image, (c, r))
+        # image --> grayscale --> DCT --> get top N coefficients using zig-zag scan
+        grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        for ch in range(image.shape[2]):
-            dct = cv2.dct(np.float32(dct_image[:, :, ch]))
-            hist = cv2.calcHist([dct], [0], mask, [self.bins], self.range)
-            histograms.append(hist)
+        if mask is not None:
+            grayscale_image = cv2.bitwise_and(
+                grayscale_image, grayscale_image, mask=mask
+            )
 
-        histogram = np.vstack(histograms).flatten() / image.size
-        return histogram
+        dct_image = cv2.dct(np.float32(grayscale_image) / 255.0)
+        coeffs = self.compute_zig_zag(dct_image[:6, :6])[:self.num_coeff]
+        return coeffs
 
 
 class LocalBinaryPattern:
@@ -131,36 +133,13 @@ class LocalBinaryPattern:
         self.range = (0, self.numPoints + 2)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        histograms = []
-        for ch in range(image.shape[2]):
-            lbp = feature.local_binary_pattern(
-                image[:, :, ch], self.numPoints, self.radius, method=self.method
-            ).astype(np.uint8)
-            hist = cv2.calcHist([lbp], [0], mask, [self.bins], self.range)
-            histograms.append(hist)
-
-        histogram = np.vstack(histograms).flatten() / image.size
-        return histogram
-
-
-class WaveletTransform:
-    def __init__(self, level: int, bins: int, wavelet: str = "haar") -> None:
-        self.level = level
-        self.bins = bins
-        self.wavelet = wavelet
-        
-    def __call__(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        image = cv2.cvtColor(image, cv2.IMREAD_GRAYSCALE)
-        coeffs = pywt.wavedec2(image, self.wavelet, level=self.level)
-
-        histograms = []
-        for coeff in coeffs:
-            hist = cv2.calcHist([np.array(coeff)], [0], None, [self.bins], [coeff.min(), coeff.max()])
-            hist = hist.flatten()
-            histograms.append(hist)
-
-        descriptor = np.concatenate(histograms)
-        return descriptor
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = (
+            feature.local_binary_pattern(image, self.numPoints, self.radius, method=self.method)
+        ).astype(np.uint8)
+        histogram = cv2.calcHist([image], [0], mask, [self.bins], self.range)
+        histogram = cv2.normalize(histogram, histogram)
+        return histogram.flatten()
 
 
 class ArtistReader:

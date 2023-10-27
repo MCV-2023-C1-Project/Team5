@@ -109,7 +109,7 @@ def objective(trial):
     TEXTURE_DESCRIPTOR_2 = LocalBinaryPattern(numPoints=24, radius=8)
     K = 10
     INDEX = trial.suggest_int("index", 0, 2)
-    TUPLES = [(DESCRIPTOR_FN, Intersection()), (TEXTURE_DESCRIPTOR_1, Euclidean()), (TEXTURE_DESCRIPTOR_2, Hellinger())]
+    TUPLES = [(DESCRIPTOR_FN, Intersection()), (TEXTURE_DESCRIPTOR_1, Euclidean()), (TEXTURE_DESCRIPTOR_2, Euclidean())]
 
     # generate descriptors for the query and for the reference datasets,
     # store them as dictionaries {idx(int): descriptor(NumPy array)}
@@ -152,8 +152,8 @@ def objective(trial):
 
 
 search_space = {
-    "index": [#0, # histogram with intersection
-              #1, # dct with euclidean
+    "index": [0, # histogram with intersection
+              1, # dct with euclidean
               2],# lbp with euclidean
 }
 study = optuna.create_study(
