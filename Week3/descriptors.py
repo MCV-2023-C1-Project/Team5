@@ -1,8 +1,9 @@
+from typing import Any
 import numpy as np
 import cv2
 from skimage import feature
 import pytesseract
-
+import pywt
 
 class Histogram:
     def __init__(self, color_model="rgb", **kwargs):
@@ -119,17 +120,15 @@ class DiscreteCosineTransform:
 class LocalBinaryPattern:
     def __init__(
         self,
-        numPoints: int,
-        radius: int,
-        bins: int = 256,
-        range: tuple = (0, 255),
-        method: str = "uniform",
+        numPoints: int = 24,
+        radius: int = 8,
+        method: str = "default",
     ) -> None:
         self.numPoints = numPoints
         self.radius = radius
         self.method = method
-        self.bins = bins
-        self.range = range
+        self.bins = self.numPoints + 3
+        self.range = (0, self.numPoints + 2)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         histograms = []
@@ -142,6 +141,26 @@ class LocalBinaryPattern:
 
         histogram = np.vstack(histograms).flatten() / image.size
         return histogram
+
+
+class WaveletTransform:
+    def __init__(self, level: int, bins: int, wavelet: str = "haar") -> None:
+        self.level = level
+        self.bins = bins
+        self.wavelet = wavelet
+        
+    def __call__(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        image = cv2.cvtColor(image, cv2.IMREAD_GRAYSCALE)
+        coeffs = pywt.wavedec2(image, self.wavelet, level=self.level)
+
+        histograms = []
+        for coeff in coeffs:
+            hist = cv2.calcHist([np.array(coeff)], [0], None, [self.bins], [coeff.min(), coeff.max()])
+            hist = hist.flatten()
+            histograms.append(hist)
+
+        descriptor = np.concatenate(histograms)
+        return descriptor
 
 
 class ArtistReader:

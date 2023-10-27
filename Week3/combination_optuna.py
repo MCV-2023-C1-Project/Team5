@@ -95,9 +95,9 @@ def compute_mapk(gt, hypo, k_val):
 
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "non_augmented"))
-REF_IMG_DIR = Path(os.path.join("..", "data", "Week1", "BBDD"))
-GT_RET = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
+QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w3", "non_augmented"))
+REF_IMG_DIR = Path(os.path.join("data", "BBDD"))
+GT_RET = Path(os.path.join("data", "qsd1_w3", "gt_corresps.pkl"))
 
 gt = pd.read_pickle(GT_RET)
 
@@ -106,10 +106,10 @@ def objective(trial):
     # set hyper-parameters
     DESCRIPTOR_FN = Histogram(color_model="hsv", bins=25, range=(0, 255))
     TEXTURE_DESCRIPTOR_1 = DiscreteCosineTransform()
-    TEXTURE_DESCRIPTOR_2 = LocalBinaryPattern(numPoints=10, radius=3)
+    TEXTURE_DESCRIPTOR_2 = LocalBinaryPattern(numPoints=24, radius=8)
     K = 10
     INDEX = trial.suggest_int("index", 0, 2)
-    TUPLES = [(DESCRIPTOR_FN, Intersection()), (TEXTURE_DESCRIPTOR_1, Euclidean()), (TEXTURE_DESCRIPTOR_2, Euclidean())]
+    TUPLES = [(DESCRIPTOR_FN, Intersection()), (TEXTURE_DESCRIPTOR_1, Euclidean()), (TEXTURE_DESCRIPTOR_2, Hellinger())]
 
     # generate descriptors for the query and for the reference datasets,
     # store them as dictionaries {idx(int): descriptor(NumPy array)}
@@ -152,8 +152,8 @@ def objective(trial):
 
 
 search_space = {
-    "index": [0, # histogram with intersection
-              1, # dct with euclidean
+    "index": [#0, # histogram with intersection
+              #1, # dct with euclidean
               2],# lbp with euclidean
 }
 study = optuna.create_study(
