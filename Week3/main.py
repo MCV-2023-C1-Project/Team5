@@ -41,7 +41,7 @@ if QUERY_IMG_DIR.stem[-4:] == "2_w2":
 else:
     BG_REMOVAL_FN = RemoveBackground()
 
-path_csv_bbdd = Path(os.path.join("data", "Week3", "paintings_db_bbdd.csv"))
+path_csv_bbdd = Path(os.path.join("data", "paintings_db_bbdd.csv"))
 path_txt_artists = Path(os.path.join(QUERY_IMG_DIR, "artists"))
 
 Similar_Artist = ArtistReader(TEXT_DETECTOR,
