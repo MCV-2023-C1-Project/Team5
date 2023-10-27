@@ -159,13 +159,13 @@ class LocalBinaryPattern:
 
 
 class ArtistReader:
-    def __init__(self, text_detector, path_query_csv, save_txt_path
+    def __init__(self, text_detector, path_bbdd_csv, save_txt_path
                  , artists_db=None, distance_fn=None):
         self.text_detector = text_detector
-        self.query_path = path_query_csv
+        self.bbdd_path = path_bbdd_csv
         self.txt_path = save_txt_path
 
-        ref_set = pd.read_csv(self.query_path, encoding='ISO-8859-1')
+        ref_set = pd.read_csv(self.bbdd_path, encoding='ISO-8859-1')
         self.ref_set = {row["idx"]: row["artist"] for _, row in ref_set.iterrows()}
 
         self.artists_db = artists_db

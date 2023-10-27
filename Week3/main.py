@@ -14,9 +14,9 @@ from similar_artist import *
 from text_combination import *
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qst1_w3"))
+QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd2_w3"))
 REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))
-RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qst1_K10.pkl"))
+RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qsd2_K10.pkl"))
 
 with_text_combination = True
 
@@ -45,7 +45,7 @@ path_csv_bbdd = Path("paintings_db_bbdd.csv")
 path_txt_artists = Path(os.path.join(QUERY_IMG_DIR, "artists"))
 
 Similar_Artist = ArtistReader(TEXT_DETECTOR,
-                              path_query_csv=path_csv_bbdd,
+                              path_bbdd_csv=path_csv_bbdd,
                               save_txt_path=path_txt_artists)
 
 # generate descriptors for the query and for the reference datasets,
@@ -102,7 +102,6 @@ for img_path in tqdm(
     ref_set[idx] = DESCRIPTOR_FN(img)  # add "idx: descriptor" pair
 
 
-path_csv_bbdd = Path("paintings_db_bbdd.csv")
 Compare_Artist = CompareArtist(path_csv_bbdd=path_csv_bbdd)
 
 if v2:
