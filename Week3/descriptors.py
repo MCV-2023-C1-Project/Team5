@@ -106,8 +106,14 @@ class DiscreteCosineTransform:
         )
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        # image --> grayscale --> DCT --> get top N coefficients using zig-zag scan
         grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        r, c = image.shape[:2]
+        r = cv2.getOptimalDFTSize(r)
+        c = cv2.getOptimalDFTSize(c)
+        # Ensure even dimensions
+        r += r % 2
+        c += c % 2
+        grayscale_image = cv2.resize(grayscale_image, (c, r))
 
         if mask is not None:
             grayscale_image = cv2.bitwise_and(
@@ -133,13 +139,16 @@ class LocalBinaryPattern:
         self.range = (0, self.numPoints + 2)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = (
-            feature.local_binary_pattern(image, self.numPoints, self.radius, method=self.method)
-        ).astype(np.uint8)
-        histogram = cv2.calcHist([image], [0], mask, [self.bins], self.range)
-        histogram = cv2.normalize(histogram, histogram)
-        return histogram.flatten()
+        histograms = []
+        for ch in range(image.shape[2]):
+            lbp = feature.local_binary_pattern(
+                image[:, :, ch], self.numPoints, self.radius, method=self.method
+            ).astype(np.uint8)
+            hist = cv2.calcHist([lbp], [0], mask, [self.bins], self.range)
+            histograms.append(hist)
+
+        histogram = np.vstack(histograms).flatten() / image.size
+        return histogram
 
 
 class ArtistReader:

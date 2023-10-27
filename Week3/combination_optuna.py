@@ -152,14 +152,14 @@ def objective(trial):
 
 
 search_space = {
-    "index": [0, # histogram with intersection
-              1, # dct with euclidean
+    "index": [#0, # histogram with intersection
+              #1, # dct with euclidean
               2],# lbp with euclidean
 }
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
     direction="maximize",  # redundand, since grid search
     storage="sqlite:///hparam.db",
-    study_name="v999_idx",
+    study_name="v9997_idx",
 )
 study.optimize(objective)
