@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import easyocr
 
 
 class TextDetection:
@@ -94,6 +95,11 @@ class TextDetection:
         x, y, w, h = bbox_coords
         mask[y : y + h, x : x + w] = 0
         return mask
+
+    def read_second_try(self, image):
+        reader = easyocr.Reader(['en'])
+        text = reader.readtext(image)
+        return text[0][1] if len(text) > 0 else ''
 
     def __call__(self, image: np.ndarray) -> np.ndarray:
         return self.get_text_mask(image)

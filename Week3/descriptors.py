@@ -3,6 +3,11 @@ import numpy as np
 import cv2
 from skimage import feature
 import pytesseract
+import re
+import easyocr
+import pandas as pd
+import Levenshtein
+import os
 
 class Histogram:
     def __init__(self, color_model="rgb", **kwargs):
@@ -152,19 +157,64 @@ class LocalBinaryPattern:
 
 
 class ArtistReader:
-    def __init__(self, text_detector, ocr_fn, artists_db=None, distance_fn=None):
+    def __init__(self, text_detector, path_query_csv, save_txt_path
+                 , artists_db=None, distance_fn=None):
         self.text_detector = text_detector
-        self.ocr_fn = ocr_fn
+        self.query_path = path_query_csv
+        self.txt_path = save_txt_path
+
+        ref_set = pd.read_csv(self.query_path, encoding='ISO-8859-1')
+        self.ref_set = {row["idx"]: row["artist"] for _, row in ref_set.iterrows()}
+
         self.artists_db = artists_db
         self.distance_fn = distance_fn
 
+    def most_similar_string(self, target):
+        min_distance = float('inf')
+        most_similar = None
+
+        for candidate in self.ref_set.values():
+            distance = Levenshtein.distance(target, candidate)
+            if distance < min_distance:
+                min_distance = distance
+                most_similar = candidate
+
+        return most_similar
+
+    def valid_text(self, text):
+        clean_text = text.replace(" ", "")
+        return len(clean_text) > 0
+
+    def emergency_case(self, image):
+        height = image.shape[0]
+        text = None
+        for i in range(1, 4):
+            img_part = image[0: i * int(height/4), :]
+            text = self.text_detector.read_second_try(img_part)
+            if text is None:
+                continue
+            else:
+                break
+        return text
+
+    def save_txt(self, text, idx):
+        os.makedirs(self.txt_path, exist_ok=True)
+        file_name = os.path.join(self.txt_path, f"{idx:05d}.txt")
+        with open(file_name, 'w') as file:
+            file.write(f"{text}\n")
+
     def __call__(self, img):
         x, y, w, h = self.text_detector.detect_text(img)
-        text_img = img[y : y + h, x : x + w]
+        text_img = img[y: y + h, x: x + w]
         text = pytesseract.image_to_string(text_img)
+        text = re.sub(r'[^a-zA-Z\s]', '', text)
+        if not self.valid_text(text):
+            text = self.emergency_case(img)
         if self.artists_db is None or self.distance_fn is None:
-            return text
+            return self.most_similar_string(text) if self.valid_text(text) else [None]
         else:
             distances = [self.distance_fn(text, artist) for artist in self.artists_db]
             result = self.artists_db[np.argmin(distances)[0]]
             return result
+
+

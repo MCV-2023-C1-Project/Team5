@@ -6,11 +6,11 @@ class CompareArtist:
     def __init__(self, path_csv_bbdd):
         self.bbdd_path = path_csv_bbdd
 
-    def get_artist_bbdd(self, artist):
         ref_set = pd.read_csv(self.bbdd_path, encoding='ISO-8859-1')
-        ref_set = {row["idx"]: row["artist"] for _, row in ref_set.iterrows()}
+        self.ref_set = {row["idx"]: row["artist"] for _, row in ref_set.iterrows()}
 
-        return [key for key, value in ref_set.items() if value == artist]
+    def get_artist_bbdd(self, artist):
+        return [key for key, value in self.ref_set.items() if value == artist]
 
     def compare_artist(self, results: dict, artists: dict):
         compared_result = []

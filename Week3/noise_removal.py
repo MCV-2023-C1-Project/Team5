@@ -3,10 +3,8 @@ import os
 from text_detection import *
 from PIL import Image
 from similar_artist import *
-import pytesseract
-import re
 import matplotlib.pyplot as plt
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+from skimage.restoration import estimate_sigma
 
 
 class Salt_Pepper_Noise:
@@ -53,6 +51,7 @@ class Salt_Pepper_Noise:
     def check_if_contrast(self, image, window=1, idx=0):
         height, width = image.shape[:2]
         contrast_map = np.zeros((height, width), dtype=np.float32)
+        # average_noise = estimate_sigma(image, channel_axis=-1, average_sigmas=True)
         for row in range(window, height - window):
             for column in range(window, width - window):
                 c = self.pixel_contrast(image, row, column)
@@ -108,20 +107,6 @@ class Salt_Pepper_Noise:
 
         return cv2.filter2D(image, -1, laplacian_kernel)
 
-    def text_similarities(self, text):
-        REF_CSV_PATH = Path(r"C:\Users\maria\PycharmProjects\C1_CVC\data\Week3\paintings_db_w2d1.csv")
-        ref_set = pd.read_csv(REF_CSV_PATH)
-
-        return most_similar_string(text, ref_set)
-
-    def read_artist(self, image, filtered=False):
-        if not filtered:
-            x, y, w, h = self.text_detector.detect_text(image)
-            image = image[y: y + h, x: x + w]
-        text = pytesseract.image_to_string(image)
-        text = re.sub(r'[^a-zA-Z\s]', '', text)
-        return self.text_similarities(text)
-
     def filter_name(self, original_image, image):
         bbox_coords = self.text_detector.detect_text(image)
         x, y, w, h = bbox_coords
@@ -152,7 +137,6 @@ if __name__ == "__main__":
 
     for img_path in QUERY_IMG_DIR.glob("*.jpg"):
         idx = int(img_path.stem[-5:])
-        print("Image {}".format(idx))
         img = Image.open(img_path)
         image = np.array(img)
 
