@@ -2,7 +2,6 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 
-from main import HAS_NOISE
 from descriptors import *
 from distances import *
 from retrieval import retrieve
@@ -98,12 +97,11 @@ def compute_mapk(gt, hypo, k_val):
 
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3"))
+QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "non_augmented"))
 REF_IMG_DIR = Path(os.path.join("..", "data", "Week1", "BBDD"))
 GT_RET = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
 
 gt = pd.read_pickle(GT_RET)
-print('retrieval::', retrieve)
 
 def objective(trial):
     NUM_POINTS = trial.suggest_int("num_points", 4, 24)
@@ -112,14 +110,6 @@ def objective(trial):
     DESCRIPTOR_FN = LocalBinaryPattern(numPoints=NUM_POINTS, radius=RADIUS)
     K = 10
 
-    v2 = False
-    if QUERY_IMG_DIR.stem[-4:] == "2_w3":
-        v2 = True
-        BG_REMOVAL_FN = RemoveBackgroundV2()
-    else:
-        BG_REMOVAL_FN = RemoveBackground()
-
-    TEXT_DETECTOR = TextDetection()
     # generate descriptors for the query and for the reference datasets,
     # store them as dictionaries {idx(int): descriptor(NumPy array)}
     query_set = {}
@@ -130,21 +120,9 @@ def objective(trial):
     ):
         idx = int(img_path.stem[-5:])
         img = Image.open(img_path)
-        img = np.array(img)
-        # Remove noise
-        denoised_img = HAS_NOISE(img)
-        # NOTE: text should be detected AFTER bg removal
-        imgs = BG_REMOVAL_FN(denoised_img)
+        imgs = np.array(img)
 
-        if v2:
-            set_images = []
-            for img in imgs:
-                text_mask = TEXT_DETECTOR.get_text_mask(img)
-                set_images.append(DESCRIPTOR_FN(img, text_mask))  # add "idx: descriptor" pair
-            query_set[idx] = set_images
-        else:
-            text_mask = TEXT_DETECTOR.get_text_mask(imgs)
-            query_set[idx] = DESCRIPTOR_FN(imgs, text_mask)
+        query_set[idx] = DESCRIPTOR_FN(imgs)
     ref_set = {}
     for img_path in tqdm(
         REF_IMG_DIR.glob("*.jpg"),
@@ -163,7 +141,7 @@ def objective(trial):
     # from the reference dataset
     result = [
         # access query with "[0]" since queries contain dummy list 'dimension'
-        retrieve(query_set[query[0]], ref_set, K, Euclidean())
+        retrieve(query_set[query[0]], ref_set, K, KullbackLeibler())
         for query in queries
     ]
 
@@ -180,6 +158,6 @@ study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),
     direction="maximize",  # redundand, since grid search
     storage="sqlite:///hparam.db",
-    study_name="v14aaaaaaa_idx",
+    study_name="v2_idx",
 )
 study.optimize(objective)
