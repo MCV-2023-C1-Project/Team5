@@ -104,14 +104,13 @@ gt = pd.read_pickle(GT_RET)
 
 def objective(trial):
     # set hyper-parameters
-    DESCRIPTOR_FN = Histogram(color_model="hsv", bins=25, range=(0, 255))
-    TEXTURE_DESCRIPTOR_1 = DiscreteCosineTransform()
-    TEXTURE_DESCRIPTOR_2 = LocalBinaryPattern(numPoints=24, radius=8)
+    SPLIT_SHAPE = (20, 20)
+    TEXTURE_DESCRIPTOR_1 = SpatialDescriptor(DiscreteCosineTransform(), SPLIT_SHAPE)
+    TEXTURE_DESCRIPTOR_2 = SpatialDescriptor(LocalBinaryPattern(numPoints=24, radius=8), SPLIT_SHAPE)
     K = 10
     INDEX = trial.suggest_int("index", 0, 5)
     TUPLES = [(TEXTURE_DESCRIPTOR_1, Cosine()), (TEXTURE_DESCRIPTOR_2, Cosine()), (TEXTURE_DESCRIPTOR_1, KullbackLeibler()), (TEXTURE_DESCRIPTOR_2, KullbackLeibler()),
               (TEXTURE_DESCRIPTOR_1, Bhattacharyya()), (TEXTURE_DESCRIPTOR_2, Bhattacharyya())]
-
     # generate descriptors for the query and for the reference datasets,
     # store them as dictionaries {idx(int): descriptor(NumPy array)}
     query_set = {}
@@ -153,12 +152,12 @@ def objective(trial):
 
 
 search_space = {
-    "index": [0, # histogram with intersection
-              1, # dct with euclidean
+    "index": [0,
+              1,
               2,
               3,
               4,
-              5],# lbp with euclidean
+              5],
 }
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),

@@ -100,6 +100,7 @@ def compute_mapk(gt, hypo, k_val):
 QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "non_augmented"))
 REF_IMG_DIR = Path(os.path.join("..", "data", "Week1", "BBDD"))
 GT_RET = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
+SPLIT_SHAPE = (20, 20)
 
 gt = pd.read_pickle(GT_RET)
 
@@ -107,7 +108,7 @@ def objective(trial):
     NUM_POINTS = trial.suggest_int("num_points", 4, 24)
     RADIUS = trial.suggest_float("radius", 1.0, 3.0)
     # set hyper-parameters
-    DESCRIPTOR_FN = LocalBinaryPattern(numPoints=NUM_POINTS, radius=RADIUS)
+    DESCRIPTOR_FN = SpatialDescriptor(LocalBinaryPattern(numPoints=NUM_POINTS, radius=RADIUS), SPLIT_SHAPE)
     K = 10
 
     # generate descriptors for the query and for the reference datasets,
@@ -151,8 +152,8 @@ def objective(trial):
 
 
 search_space = {
-    "num_points": [4, 8, 16, 24],
-    "radius": [1.0, 1.5, 2.0, 2.5, 3.0],
+    "num_points": [4, 8, 16, 24, 32],
+    "radius": [1.0, 2.0, 3.0, 5.0, 8.0],
 }
 study = optuna.create_study(
     sampler=optuna.samplers.GridSampler(search_space),

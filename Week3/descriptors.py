@@ -40,7 +40,7 @@ class Histogram:
 
 
 class SpatialDescriptor:
-    def __init__(self, base_descriptor, split_shape):
+    def __init__(self, base_descriptor, split_shape: tuple):
         """Class for computing a spatial descriptor.
 
         Args:
@@ -115,8 +115,7 @@ class DiscreteCosineTransform:
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         r, c = image.shape[:2]
-        r = cv2.getOptimalDFTSize(r)
-        c = cv2.getOptimalDFTSize(c)
+        r, c = cv2.getOptimalDFTSize(r), cv2.getOptimalDFTSize(c)
         # Ensure even dimensions
         r += r % 2
         c += c % 2
@@ -142,20 +141,14 @@ class LocalBinaryPattern:
         self.numPoints = numPoints
         self.radius = radius
         self.method = method
-        self.bins = self.numPoints + 3
-        self.range = (0, self.numPoints + 2)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        histograms = []
-        for ch in range(image.shape[2]):
-            lbp = feature.local_binary_pattern(
-                image[:, :, ch], self.numPoints, self.radius, method=self.method
-            ).astype(np.uint8)
-            hist = cv2.calcHist([lbp], [0], mask, [self.bins], self.range)
-            histograms.append(hist)
-
-        histogram = np.vstack(histograms).flatten() / image.size
-        return histogram
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = (feature.local_binary_pattern(image, self.numPoints, self.radius, method=self.method)).astype(np.uint8)
+        bins = self.numPoints + 2
+        hist = cv2.calcHist([image],[0], mask, [bins], (0, bins))
+        hist = cv2.normalize(hist, hist)
+        return hist.flatten()
 
 
 class ArtistReader:
