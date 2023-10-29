@@ -37,10 +37,8 @@ def retrieve_combined(query_descriptor_1, ref_set_1, distance_function_1, weight
     ]
     distances_2 = [
         DISTANCE_2(query_descriptor_2, ref_descriptor)
-        for ref_descriptor in ref_set_2
+        for ref_descriptor in ref_set_2.values()
     ]
-    print("distances_1", distances_1)
-    print("distances_2", distances_2)
     distances = np.array(distances_1) * weight_1 + np.array(distances_2) * weight_2
     # obtain array of indices that would sort distances
     distance_ranks = np.argsort(distances)
