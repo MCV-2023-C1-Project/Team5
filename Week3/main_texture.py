@@ -129,8 +129,8 @@ if __name__ == "__main__":
                 set_images.append(TEXTURE_DESCRIPTOR_1(img, text_mask))  # add "idx: descriptor" pair
             query_set[idx] = set_images
         else:
-            text_mask = TEXT_DETECTOR.get_text_mask(imgs[0])
-            query_set[idx] = TEXTURE_DESCRIPTOR_1(imgs[0], text_mask)
+            text_mask = TEXT_DETECTOR.get_text_mask(img)
+            query_set[idx] = TEXTURE_DESCRIPTOR_1(img, text_mask)
 
     ref_set = {}
     for img_path in tqdm(
