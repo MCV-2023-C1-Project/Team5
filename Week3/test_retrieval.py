@@ -86,17 +86,24 @@ def compute_mapk(gt,hypo,k_val):
 
 
 # set paths
-PRED_RET_PATH = Path("result.pkl")
-GT_RET_PATH = Path(os.path.join("data", "Week2", "qsd1_w2", "gt_corresps.pkl"))
+PRED_RET_PATH = Path("results", "texture_text_qsd1_K10.pkl")
+GT_RET_PATH = Path(os.path.join("data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
 
 pred = pd.read_pickle(PRED_RET_PATH)
 
-"""
-    Just for changing shape to gt_corresps.pkl shape for result.pkl with K = 1
-"""
-if "2_w2" in str(GT_RET_PATH):
+predv2 = []
+if "2_w3" in str(GT_RET_PATH):
     from itertools import chain
-    pred = [list(chain(*inner_list)) for inner_list in pred]
+    # pred = [list(chain(*inner_list)) for inner_list in pred]
+    for p in pred:
+        lst_preds = []
+        print(p)
+        for inner_list in p:
+            print(inner_list)
+            lst_preds.append(inner_list[0])
+            print(lst_preds)
+        predv2.append(lst_preds)
+    pred = predv2
 
 gt = pd.read_pickle(GT_RET_PATH)
 
