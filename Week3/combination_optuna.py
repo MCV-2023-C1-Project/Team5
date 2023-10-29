@@ -99,6 +99,11 @@ QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "non_augment
 REF_IMG_DIR = Path(os.path.join("..", "data", "Week1", "BBDD"))
 GT_RET = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
 
+# set paths
+QUERY_IMG_DIR = Path(r"C:\Users\krupa\Desktop\qsd2_w3\qsd2_w3")
+REF_IMG_DIR = Path(r"D:\C1-Project (LEGACY)\data\BBDD")
+GT_RET = Path(r"C:\Users\krupa\Desktop\qsd2_w3\qsd2_w3\gt_corresps.pkl")
+
 gt = pd.read_pickle(GT_RET)
 
 # set hyper-parameters
@@ -139,8 +144,8 @@ queries_texture = [[idx] for idx in range(len(query_set_texture))]
 K = 10
 combinations = [(0,1),(0.1,0.9),(0.2,0.8),(0.3,0.7),(0.4,0.6),(0.5,0.5),
                 (0.6,0.4),(0.7,0.3),(0.8,0.2),(0.9,0.1),(1,0)]
-weight_1 = combinations[5][0]
-weight_2 = combinations[5][1]
+weight_1 = combinations[-1][0]
+weight_2 = combinations[-1][1]
 
 # generate descriptors for the query and for the reference datasets,
 # store them as dictionaries {idx(int): descriptor(NumPy array)}
@@ -152,8 +157,8 @@ result = [
     # access query with "[0]" since queries contain dummy list 'dimension'
     #(query_descriptor_1, ref_set_1, k, distance_function_1, weight_1,
     # query_descriptor_2, ref_set_2, distance_function_2, weight_2)
-    retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, K, DISTANCE_1,weight_1
-                      ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2)
+    retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, DISTANCE_1,weight_1
+                      ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2, K)
     for idx in range(len(queries_color)) # could be any of the two queries
 ]
 
@@ -178,8 +183,8 @@ def objective(trial):
         # access query with "[0]" since queries contain dummy list 'dimension'
         #(query_descriptor_1, ref_set_1, k, distance_function_1, weight_1,
         # query_descriptor_2, ref_set_2, distance_function_2, weight_2)
-        retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, K, DISTANCE_1,weight_1
-                          ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2)
+        retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, DISTANCE_1,weight_1
+                          ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2, K)
         for idx in range(len(queries_color)) # could be any of the two queries
     ]
 
