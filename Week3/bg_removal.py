@@ -1,6 +1,12 @@
 import numpy as np
 import cv2
-
+from PIL import Image
+import matplotlib.pyplot as plt
+from pathlib import Path
+import os
+from filters import *
+from text_detection import *
+from noise_removal import *
 from utils import *
 
 
@@ -169,7 +175,7 @@ class RemoveBackgroundV2(RemoveBackground):
             return 0, h_mid
 
     def crop_and_merge_masks(
-        self, image: np.ndarray, mid: int, axis: int
+            self, image: np.ndarray, mid: int, axis: int
     ) -> np.ndarray:
         # Get three channels for the get_mask function
         empty_channel = np.zeros_like(image)
@@ -198,7 +204,6 @@ class RemoveBackgroundV2(RemoveBackground):
                 contour_l.append(c)
 
         return contour_l
-
 
     def create_mask(self, img: np.ndarray) -> any:
         image = np.array(img)
@@ -289,7 +294,7 @@ class RemoveBackgroundV2(RemoveBackground):
 
         """
             CASE 3: Not good contours enough for positioning the images on the background
-            
+
             Solution: Map the full image trying to find the gap between the paintings and then apply Week 1 techniques
         """
         try:
@@ -310,7 +315,6 @@ class RemoveBackgroundV2(RemoveBackground):
         print("Not able to detect the images")
         return None
 
-
     def separate_image(self, image: np.ndarray, mask: np.ndarray) -> list:
         cropped_images = []
         masked_image = cv2.bitwise_and(image, image, mask=mask)
@@ -328,9 +332,9 @@ class RemoveBackgroundV2(RemoveBackground):
 
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            
-            if w > image.shape[1]*0.1 and h > image.shape[0]*0.1:
-                cropped_images.append(masked_image[y:y+h, x:x+w])
+
+            if w > image.shape[1] * 0.1 and h > image.shape[0] * 0.1:
+                cropped_images.append(masked_image[y:y + h, x:x + w])
 
         return cropped_images
 
@@ -353,3 +357,195 @@ class RemoveBackgroundV2(RemoveBackground):
 
         return self.separate_image(image, mask)
 
+class RemoveBackgroundV3(RemoveBackground):
+    # Improved version for multiple images
+    def __init__(self, threshold: int = 15, percentage_image: float = 0.6):
+        """
+        Initializes the RemoveBackground class with the given threshold and percentage_image values.
+
+        Args
+            threshold (int): The threshold value used to determine if a pixel is part of the background or not.
+            percentage_image (float): The percentage of the image that is considered to be the background.
+        """
+        self.threshold = threshold
+        self.percentage_image = percentage_image
+
+    def has_zero_between_ones(self, lst):
+        found_one = False
+
+        for item in lst:
+            if item == 1:
+                found_one = True
+            elif item == 0 and found_one:
+                return True
+            elif item == 1 and found_one:
+                found_one = False
+
+        return False
+
+    def search_middle(self, img: np.ndarray) -> (int, int):
+        """
+        Finds the middle point of the image by searching for a line of pixels with similar color values.
+
+        Args
+            img (np.ndarray): The image to search for the middle point.
+
+        Returns
+            (int, int): The x and y coordinates of the middle point.
+        """
+        height, width = img.shape[:2]
+        blocks = 10
+
+        w_points = []
+        h_points = []
+        for i in range(1, blocks):
+            w_points.append(i * width // blocks)
+            h_points.append(i * height // blocks)
+
+        top_y = int(height * self.percentage_image)
+        top_x = int(width * self.percentage_image)
+
+        two_images_col = False
+        w_mid = 0
+        w_bin = []
+        for w in w_points:
+            top = img[0, w].astype(np.int32)
+            # Top to bottom
+            for y in range(1, top_y):
+                dif = np.mean(np.abs(top - img[y, w]))
+                if dif > self.threshold:
+                    w_bin.append(0)
+                    break
+                top = img[y, w].astype(np.int32)
+                if y == top_y - 1:
+                    w_mid = w
+                    w_bin.append(1)
+            two_images_col = self.has_zero_between_ones(w_bin)
+            if two_images_col:
+                break
+
+        two_images_row = False
+        if not two_images_col:
+            h_mid = 0
+            h_bin = []
+            for h in h_points:
+                left = img[h, 0].astype(np.int32)
+                # Left to right
+                for x in range(1, top_x):
+                    dif = np.mean(np.abs(left - img[h, x]))
+                    if dif > self.threshold:
+                        h_bin.append(0)
+                        break
+                    left = img[h, x].astype(np.int32)
+                    if y == top_x - 1:
+                        h_bin.append(1)
+                        h_mid = h
+                two_images_row = self.has_zero_between_ones(h_bin)
+                if two_images_row:
+                    break
+
+        if two_images_col:
+            return w_mid, 0
+        elif two_images_row:
+            return 0, h_mid
+        else:
+            # One image
+            return 0, 0
+
+    def crop_and_merge_masks(
+            self, image: np.ndarray, mid: int, axis: int
+    ) -> np.ndarray:
+        # Get three channels for the get_mask function
+        empty_channel = np.zeros_like(image)
+        color_image = cv2.merge((image, empty_channel, empty_channel))
+
+        # Crop the image by the middle to get the pictures on different images
+        if axis == 1:
+            img1 = color_image[:, :mid]
+            img2 = color_image[:, mid:]
+        elif axis == 0:
+            img1 = color_image[:mid, :]
+            img2 = color_image[mid:, :]
+
+        # Get the mask for each image
+        mask1 = super().get_mask(img1)
+        mask2 = super().get_mask(img2)
+        # Concatenate both masks to get the full mask
+        mask = np.concatenate((mask1, mask2), axis=axis)
+
+        return mask
+
+    def create_mask(self, image):
+        w_mid, h_mid = self.search_middle(image)
+        if w_mid != 0:
+            mask = self.crop_and_merge_masks(image, w_mid, axis=1)
+            return mask
+
+        elif h_mid != 0:
+            mask = self.crop_and_merge_masks(image, h_mid, axis=0)
+            return mask
+
+        else:
+            # Get three channels for the get_mask function
+            empty_channel = np.zeros_like(image)
+            color_image = cv2.merge((image, empty_channel, empty_channel))
+            return super().get_mask(color_image)
+
+
+    def get_mask(self, img: np.ndarray) -> any:
+        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)[:, :, 2]
+        mask = self.create_mask(hsv)
+        mask = erode(mask)
+        mask = dilate(mask)
+        return mask
+
+    def separate_image(self, image: np.ndarray, mask: np.ndarray) -> list:
+        cropped_images = []
+        masked_image = cv2.bitwise_and(image, image, mask=mask)
+        gray_masked_image = cv2.cvtColor(masked_image, cv2.COLOR_RGB2GRAY)
+        contours, _ = cv2.findContours(gray_masked_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = sorted(
+            contours, key=lambda x: cv2.contourArea(x, True), reverse=False
+        )[:2]
+
+        def get_x_coordinate(contour):
+            x, _, _, _ = cv2.boundingRect(contour)
+            return x
+
+        contours = sorted(contours, key=get_x_coordinate, reverse=False)
+
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+
+            if w > image.shape[1]*0.1 and h > image.shape[0]*0.1:
+                cropped_images.append(masked_image[y:y+h, x:x+w])
+
+        return cropped_images
+
+
+    def __call__(self, image: np.ndarray) -> list:
+        mask = self.get_mask(image)
+        if mask is None:
+            return np.ones(image.shape[:2], dtype=np.uint8) * 255
+
+        return self.separate_image(image, mask)
+
+if __name__ == "__main__":
+
+    NOISE_FILTER = Median()
+    NAME_FILTER = Average()
+    TEXT_DETECTOR = TextDetection()
+    HAS_NOISE = Salt_Pepper_Noise(noise_filter=NOISE_FILTER,
+                                  name_filter=NAME_FILTER,
+                                  text_detector=TEXT_DETECTOR)
+    QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd2_w3"))
+    BG_REMOVAL_FN = RemoveBackgroundV3()
+    for img_path in QUERY_IMG_DIR.glob("*.jpg"):
+        idx = int(img_path.stem[-5:])
+        img = Image.open(img_path)
+        img = np.array(img)
+        denoised_image = HAS_NOISE(img)
+        # Remove noise
+        imgs = BG_REMOVAL_FN(denoised_image)
+        for i, img in enumerate(imgs):
+            Image.fromarray(img).save(Path(os.path.join("denoised\\qsd2\\{}_{}.png".format(idx, i))))

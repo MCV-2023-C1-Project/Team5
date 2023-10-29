@@ -17,13 +17,16 @@ class Salt_Pepper_Noise:
         self.text_detector = text_detector
         self.name_filter = name_filter
 
-    def plot_images(self, image, denoised_image):
+    def plot_images(self, image, denoised_image, final_image):
         # Display the original and denoised images
-        plt.subplot(1, 2, 1), plt.imshow(image, cmap='gray')
+        plt.subplot(1, 3, 1), plt.imshow(image, cmap='gray')
         plt.title('Original Image with Noise'), plt.xticks([]), plt.yticks([])
 
-        plt.subplot(1, 2, 2), plt.imshow(denoised_image, cmap='gray')
-        plt.title('Denoised Image'), plt.xticks([]), plt.yticks([])
+        plt.subplot(1, 3, 2), plt.imshow(denoised_image, cmap='gray')
+        plt.title('Only Median Filter'), plt.xticks([]), plt.yticks([])
+
+        plt.subplot(1, 3, 2), plt.imshow(final_image, cmap='gray')
+        plt.title('Medina filter + Average for name'), plt.xticks([]), plt.yticks([])
 
         plt.show()
 
@@ -51,46 +54,16 @@ class Salt_Pepper_Noise:
     def check_if_contrast(self, image, window=1, idx=0):
         height, width = image.shape[:2]
         contrast_map = np.zeros((height, width), dtype=np.float32)
-        # average_noise = estimate_sigma(image, channel_axis=-1, average_sigmas=True)
-        for row in range(window, height - window):
-            for column in range(window, width - window):
-                c = self.pixel_contrast(image, row, column)
-                contrast_map[row, column] = c
-        #self.plot_images(image, contrast_map)
-        #self.plot_std_dev(contrast_map, idx=idx)
+        average_noise = estimate_sigma(image, channel_axis=-1, average_sigmas=True)
+        # for row in range(window, height - window):
+        #     for column in range(window, width - window):
+        #         c = self.pixel_contrast(image, row, column)
+        #         contrast_map[row, column] = c
+        # #self.plot_images(image, contrast_map)
+        # #self.plot_std_dev(contrast_map, idx=idx)
 
-        return True if np.median(contrast_map) >= 7 and np.mean(contrast_map) >= 9 else False
+        return True if average_noise >= 9 else False
 
-    def image_sharpening(self, image):
-        # Apply Laplacian kernel for image sharpening
-        laplacian_kernel = np.array([[0, -1, 0],
-                                     [-1, 4, -1],
-                                     [0, -1, 0]])
-
-        sharpened_image = cv2.filter2D(image, -1, laplacian_kernel)
-        hker, wker = int(image.shape[0] * 0.005), int(image.shape[1] * 0.005)
-        kernel = np.ones((3, 3), np.uint8)
-        dilated = cv2.dilate(sharpened_image, kernel, iterations=1)
-        erode = cv2.erode(dilated, kernel, iterations=5)
-
-        # Combine filtered and original images using a weighted sum
-        alpha = 0.9  # Weight for the original image
-        beta = 0.1  # Weight for the filtered image
-
-        combined_image = cv2.addWeighted(image, alpha, dilated, beta, 0)
-
-        # Display the original and sharpened images
-        plt.subplot(1, 3, 1), plt.imshow(image, cmap='gray')
-        plt.title('Original Image'), plt.xticks([]), plt.yticks([])
-
-        plt.subplot(1, 3, 2), plt.imshow(dilated, cmap='gray')
-        plt.title('Sharpened Image'), plt.xticks([]), plt.yticks([])
-
-        plt.subplot(1, 3, 3), plt.imshow(combined_image, cmap='gray')
-        plt.title('Combined Image'), plt.xticks([]), plt.yticks([])
-
-        plt.show()
-        return combined_image
 
     def kernel_size(self, image, size_factor=0.008):
         kernel_size = tuple(int(dim * size_factor) for dim in image.shape)
@@ -109,11 +82,13 @@ class Salt_Pepper_Noise:
 
     def filter_name(self, original_image, image):
         bbox_coords = self.text_detector.detect_text(image)
+        image1 = image
         x, y, w, h = bbox_coords
         name_img = original_image[y: y + h, x: x + w]
         den_name = self.name_filter(name_img, kernel_size=3)
         den_name = self.sharp_image(den_name)
         image[y: y + h, x: x + w] = den_name
+        # self.plot_images(original_image, image1, image)
         return image
 
 
@@ -129,7 +104,7 @@ class Salt_Pepper_Noise:
 
 if __name__ == "__main__":
 
-    QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd1_w3"))
+    QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "testing"))
 
     NOISE_FILTER = Median()
     HAS_NOISE = Salt_Pepper_Noise()
@@ -144,7 +119,7 @@ if __name__ == "__main__":
         denoised_image = HAS_NOISE(image)
 
         if True:
-            Image.fromarray(denoised_image).save("denoised/qsd2/{}.png".format(idx))
+            Image.fromarray(denoised_image).save("denoised/qsd1/{}.png".format(idx))
 
 
 
