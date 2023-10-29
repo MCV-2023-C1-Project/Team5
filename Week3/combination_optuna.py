@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from descriptors import *
 from distances import *
-from retrieval import retrieve
+from retrieval_combined import retrieve_combined
 from tqdm import tqdm
 from bg_removal import *
 import optuna
@@ -95,55 +95,92 @@ def compute_mapk(gt, hypo, k_val):
 
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w3", "non_augmented"))
-REF_IMG_DIR = Path(os.path.join("data", "BBDD"))
-GT_RET = Path(os.path.join("data", "qsd1_w3", "gt_corresps.pkl"))
+QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "non_augmented"))
+REF_IMG_DIR = Path(os.path.join("..", "data", "Week1", "BBDD"))
+GT_RET = Path(os.path.join("..", "data", "Week3", "qsd1_w3", "gt_corresps.pkl"))
 
 gt = pd.read_pickle(GT_RET)
 
+# set hyper-parameters
+COLOR_DESCRIPTOR = Histogram(color_model="hsv", bins=25, range=(0, 255))
+TEXTURE_DESCRIPTOR = LocalBinaryPattern(numPoints=16, radius=4)
+#TEXTURE_DESCRIPTOR = DiscreteCosineTransform()
+DISTANCE_1 = Intersection()
+DISTANCE_2 = Euclidean()
+query_set_color = {}
+query_set_texture = {}
+for img_path in tqdm(
+    QUERY_IMG_DIR.glob("*.jpg"),
+    desc="Computing descriptors for the query set",
+    total=len(list(QUERY_IMG_DIR.glob("*.jpg"))),
+):
+    idx = int(img_path.stem[-5:])
+    img = Image.open(img_path)
+    img = np.array(img)
+    query_set_color[idx] = COLOR_DESCRIPTOR(img)  # add "idx: descriptor" pair
+    query_set_texture[idx] = TEXTURE_DESCRIPTOR(img)
 
+ref_set_color = {}
+ref_set_texture = {}
+for img_path in tqdm(
+    REF_IMG_DIR.glob("*.jpg"),
+    desc="Computing descriptors for the reference set",
+    total=len(list(REF_IMG_DIR.glob("*.jpg"))),
+):
+    idx = int(img_path.stem[-5:])
+    img = Image.open(img_path)
+    img = np.array(img)
+    ref_set_color[idx] = COLOR_DESCRIPTOR(img)  # add "idx: descriptor" pair
+    ref_set_texture[idx] = TEXTURE_DESCRIPTOR(img)
+
+# define queries nested list of indices (by default, whole query set)
+queries_color = [[idx] for idx in range(len(query_set_color))]
+queries_texture = [[idx] for idx in range(len(query_set_texture))]
+K = 10
+combinations = [(0,1),(0.1,0.9),(0.2,0.8),(0.3,0.7),(0.4,0.6),(0.5,0.5),
+                (0.6,0.4),(0.7,0.3),(0.8,0.2),(0.9,0.1),(1,0)]
+weight_1 = combinations[5][0]
+weight_2 = combinations[5][1]
+
+# generate descriptors for the query and for the reference datasets,
+# store them as dictionaries {idx(int): descriptor(NumPy array)}
+
+
+# use retrieval api to obtain most similar to the queries samples
+# from the reference dataset
+result = [
+    # access query with "[0]" since queries contain dummy list 'dimension'
+    #(query_descriptor_1, ref_set_1, k, distance_function_1, weight_1,
+    # query_descriptor_2, ref_set_2, distance_function_2, weight_2)
+    retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, K, DISTANCE_1,weight_1
+                      ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2)
+    for idx in range(len(queries_color)) # could be any of the two queries
+]
+
+# evaluate results
+metric = mapk(gt, result, k=10)
+print(f"mAP@10: {metric:.4f}")
 def objective(trial):
-    # set hyper-parameters
-    SPLIT_SHAPE = (20, 20)
-    TEXTURE_DESCRIPTOR_1 = SpatialDescriptor(DiscreteCosineTransform(), SPLIT_SHAPE)
-    TEXTURE_DESCRIPTOR_2 = SpatialDescriptor(LocalBinaryPattern(numPoints=24, radius=8), SPLIT_SHAPE)
     K = 10
-    INDEX = trial.suggest_int("index", 0, 5)
-    TUPLES = [(TEXTURE_DESCRIPTOR_1, Cosine()), (TEXTURE_DESCRIPTOR_2, Cosine()), (TEXTURE_DESCRIPTOR_1, KullbackLeibler()), (TEXTURE_DESCRIPTOR_2, KullbackLeibler()),
-              (TEXTURE_DESCRIPTOR_1, Bhattacharyya()), (TEXTURE_DESCRIPTOR_2, Bhattacharyya())]
+    index = trial.suggest_int("index", 0, 10)
+    combinations = [(0,1),(0.1,0.9),(0.2,0.8),(0.3,0.7),(0.4,0.6),(0.5,0.5),
+                    (0.6,0.4),(0.7,0.3),(0.8,0.2),(0.9,0.1),(1,0)]
+    weight_1 = combinations[index][0]
+    weight_2 = combinations[index][1]
+
     # generate descriptors for the query and for the reference datasets,
     # store them as dictionaries {idx(int): descriptor(NumPy array)}
-    query_set = {}
-    for img_path in tqdm(
-        QUERY_IMG_DIR.glob("*.jpg"),
-        desc="Computing descriptors for the query set",
-        total=len(list(QUERY_IMG_DIR.glob("*.jpg"))),
-    ):
-        idx = int(img_path.stem[-5:])
-        img = Image.open(img_path)
-        img = np.array(img)
-        query_set[idx] = TUPLES[INDEX][0](img)  # add "idx: descriptor" pair
 
-    ref_set = {}
-    for img_path in tqdm(
-        REF_IMG_DIR.glob("*.jpg"),
-        desc="Computing descriptors for the reference set",
-        total=len(list(REF_IMG_DIR.glob("*.jpg"))),
-    ):
-        idx = int(img_path.stem[-5:])
-        img = Image.open(img_path)
-        img = np.array(img)
-        ref_set[idx] = TUPLES[INDEX][0](img)  # add "idx: descriptor" pair
-
-    # define queries nested list of indices (by default, whole query set)
-    queries = [[idx] for idx in range(len(query_set))]
 
     # use retrieval api to obtain most similar to the queries samples
     # from the reference dataset
     result = [
         # access query with "[0]" since queries contain dummy list 'dimension'
-        retrieve(query_set[query[0]], ref_set, K, TUPLES[INDEX][1])
-        for query in queries
+        #(query_descriptor_1, ref_set_1, k, distance_function_1, weight_1,
+        # query_descriptor_2, ref_set_2, distance_function_2, weight_2)
+        retrieve_combined(query_set_color[queries_color[idx][0]], ref_set_color, K, DISTANCE_1,weight_1
+                          ,query_set_texture[queries_texture[idx][0]], ref_set_texture, DISTANCE_2,weight_2)
+        for idx in range(len(queries_color)) # could be any of the two queries
     ]
 
     # evaluate results
@@ -157,12 +194,17 @@ search_space = {
               2,
               3,
               4,
-              5],
+              5,
+              6,
+              7,
+              8,
+              9,
+              10],
 }
-study = optuna.create_study(
-    sampler=optuna.samplers.GridSampler(search_space),
-    direction="maximize",  # redundand, since grid search
-    storage="sqlite:///hparam.db",
-    study_name="v999999_idx",
-)
-study.optimize(objective)
+#study = optuna.create_study(
+#    sampler=optuna.samplers.GridSampler(search_space),
+#    direction="maximize",  # redundand, since grid search
+#    storage="sqlite:///hparam.db",
+#    study_name="v9999999999_idx",
+#)
+#study.optimize(objective)
