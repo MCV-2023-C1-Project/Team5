@@ -14,15 +14,15 @@ from similar_artist import *
 from text_combination import *
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd2_w3"))
+QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd1_w3"))
 REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))
-RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qsd2_K10.pkl"))
+RESULT_OUT_PATH = Path(os.path.join("results", "texture_text_qsd1_K10.pkl"))
 
 with_text_combination = True
 
 # set hyper-parameters
-BASE_DESCRIPTOR = Histogram(color_model="yuv", bins=25, range=(0, 255))
-# BASE_DESCRIPTOR = LocalBinaryPattern(numPoints=8, radius=1)
+# BASE_DESCRIPTOR = Histogram(color_model="yuv", bins=25, range=(0, 255))
+BASE_DESCRIPTOR = LocalBinaryPattern(numPoints=8, radius=1)
 SPLIT_SHAPE = (20, 20)  # (1, 1) is the same as not making spatial at all
 DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)
 K = 10
@@ -61,18 +61,22 @@ for img_path in tqdm(
     img = Image.open(img_path)
     img = np.array(img)
     # Remove noise
-    denoised_img = HAS_NOISE(img)
-    # Image.fromarray(denoised_img).save("denoised/qsd2/{}.png".format(idx))
+
+    denoised_path = Path(os.path.join("denoised", "qsd1"))
+    os.makedirs(denoised_path, exist_ok=True)
     # NOTE: text should be detected AFTER bg removal
     os.makedirs(path_txt_artists, exist_ok=True)
     file_name = os.path.join(path_txt_artists, f"{idx:05d}.txt")
+    edges = cv2.Canny(img, 10, 80)
+    denoised_img = HAS_NOISE(img)
     with open(file_name, 'w'):
         pass
     if v2:
         imgs = BG_REMOVAL_FN(denoised_img)
         set_images = []
         artists = []
-        for img in imgs:
+        for i, img in enumerate(imgs):
+            Image.fromarray(img).save(Path(os.path.join(denoised_path, "{}_{}.png".format(idx, i))))
             text_mask = TEXT_DETECTOR.get_text_mask(img)
             set_images.append(DESCRIPTOR_FN(img, text_mask))  # add "idx: descriptor" pair
             artist = Similar_Artist(img)
