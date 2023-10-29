@@ -114,7 +114,7 @@ if v2:
     """
     if with_text_combination:
         result_dict = {}
-        for idx in query_set.keys():
+        for idx in range(len(query_set)):
             q_list = []
             for query in query_set[idx]:
                 q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
@@ -129,7 +129,7 @@ if v2:
         # use retrieval api to obtain most similar to the queries samples
         # from the reference dataset
 
-        for idx in query_set.keys():
+        for idx in range(len(query_set)):
             q_list = []
             for query in query_set[idx]:
                 q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
@@ -141,7 +141,7 @@ else:
     """
     if with_text_combination:
         result_dict = {}
-        for idx in query_set.keys():
+        for idx in range(len(query_set)):
             result_dict[idx] = retrieve(query_set[idx], ref_set, K, DISTANCE_FN)
 
         result = Compare_Artist.compare_artist(result_dict, query_artist)
@@ -154,7 +154,7 @@ else:
         result = [
             # access query with "[0]" since queries contain dummy list 'dimension'
             retrieve(query_set[idx], ref_set, K, DISTANCE_FN)
-            for idx in query_set.keys()
+            for idx in range(len(query_set))
          ]
 
 

@@ -147,7 +147,7 @@ for img_path in tqdm(
     idx = int(img_path.stem[-5:])
     img = Image.open(img_path)
     img = np.array(img)
-    ref_set[idx] = TEXTURE_DESCRIPTOR[0](img)  # add "idx: descriptor" pair
+    ref_set[idx] = TEXTURE_DESCRIPTOR(img)  # add "idx: descriptor" pair
 
 if USE_V2:
     result = []
