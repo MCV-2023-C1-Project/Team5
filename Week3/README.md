@@ -1,5 +1,5 @@
 # C1-Project
-### Week 2 
+### Week 3 
 
 To be able to run the code, you need to install the requirements from the requirements.txt file. 
 To do so, you need to run the following command: ```pip3 install -r requirements.txt```
