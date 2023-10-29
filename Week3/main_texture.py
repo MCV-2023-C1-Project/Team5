@@ -9,7 +9,7 @@ from bg_removal import *
 import optuna
 import pandas as pd
 import os
-
+from test_retrieval import mapk as mapk_v1
 
 def apk(actual, predicted, k=10):
     """
@@ -34,16 +34,16 @@ def apk(actual, predicted, k=10):
             The average precision at k over the input lists
 
     """
-    if len(predicted) > k:
+    if len(predicted)>k:
         predicted = predicted[:k]
 
     score = 0.0
     num_hits = 0.0
 
-    for i, p in enumerate(predicted):
+    for i,p in enumerate(predicted):
         if p in actual and p not in predicted[:i]:
             num_hits += 1.0
-            score += num_hits / (i + 1.0)
+            score += num_hits / (i+1.0)
 
     if not actual:
         return 0.0
@@ -61,7 +61,7 @@ def mapk(actual, predicted, k=10):
     Parameters
     ----------
     actual : list
-             A list of lists of elements that are to be predicted
+             A list of lists of elements that are to be predicted 
              (order doesn't matter in the lists)
     predicted : list
                 A list of lists of predicted elements
@@ -75,88 +75,98 @@ def mapk(actual, predicted, k=10):
             The mean average precision at k over the input lists
 
     """
-    return np.mean([apk(a, p, k) for a, p in zip(actual, predicted)])
 
+    result = []
+    for a, p in zip(actual, predicted):
+        if len(a) != len(p):
+            result.append(0)
+        else:
+            for b, c in zip(a, p):
+                    result.append(apk([b], c, k))
+    mean = np.mean(result)
+    return mean
 
-def compute_mapk(gt, hypo, k_val):
+def compute_mapk(gt,hypo,k_val):
     """
     source: https://github.com/MCV-2023-C1-Project/mcv-c1-code/blob/main/score_painting_retrieval.py#L62
     """
 
     apk_list = []
-    for ii, query in enumerate(gt):
-        for jj, sq in enumerate(query):
+    for ii,query in enumerate(gt):
+        for jj,sq in enumerate(query):
             apk_val = 0.0
             if len(hypo[ii]) > jj:
-                apk_val = apk([sq], hypo[ii][jj], k_val)
+                apk_val = apk([sq],hypo[ii][jj], k_val)
             apk_list.append(apk_val)
-
+            
     return np.mean(apk_list)
 
 
 # set paths
-QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w3", "non_augmented"))
+QUERY_IMG_DIR = Path(os.path.join("data", "qsd2_w3", "non_augmented"))
 REF_IMG_DIR = Path(os.path.join("data", "BBDD"))
-GT_RET = Path(os.path.join("data", "qsd1_w3", "gt_corresps.pkl"))
+GT_RET = Path(os.path.join("data", "qsd2_w3", "gt_corresps.pkl"))
+USE_V2 = True
 
 gt = pd.read_pickle(GT_RET)
 
+K = 10
+SPLIT_SHAPE = (20, 20)
+TEXTURE_DESCRIPTOR = SpatialDescriptor(DiscreteCosineTransform(), SPLIT_SHAPE)
+# TEXTURE_DESCRIPTOR = SpatialDescriptor(LocalBinaryPattern(numPoints=24, radius=8), SPLIT_SHAPE)
+DISTANCE_FN = Cosine()
+REMOVE_BG = RemoveBackgroundV2()
+TEXT_DETECTOR = TextDetection()
 
-if __name__ == "__main__":
-    SPLIT_SHAPE = (20, 20)
-    TEXTURE_DESCRIPTOR_1 = SpatialDescriptor(DiscreteCosineTransform(num_coeff=4), SPLIT_SHAPE)
-    DISTANCE_FN = Cosine()
-    REMOVE_BG = RemoveBackgroundV2()
-    TEXT_DETECTOR = TextDetection()
-    K = 10
-
-    query_set = {}
-    
-    v2 = False
-
-    for img_path in tqdm(
-        QUERY_IMG_DIR.glob("*.jpg"),
-        desc="Computing descriptors for the query set",
-        total=len(list(QUERY_IMG_DIR.glob("*.jpg"))),
-    ):
-        idx = int(img_path.stem[-5:])
-        img = cv2.imread(str(img_path))
+# generate descriptors for the query and for the reference datasets,
+# store them as dictionaries {idx(int): descriptor(NumPy array)}
+query_set = {}
+for img_path in tqdm(
+    QUERY_IMG_DIR.glob("*.jpg"),
+    desc="Computing descriptors for the query set",
+    total=len(list(QUERY_IMG_DIR.glob("*.jpg"))),
+):
+    idx = int(img_path.stem[-5:])
+    img = Image.open(img_path)
+    img = np.array(img)
+    if USE_V2:
         imgs = REMOVE_BG(img)
-        if v2:
-            set_images = []
-            for img in imgs:
-                text_mask = TEXT_DETECTOR.get_text_mask(img)
-                set_images.append(TEXTURE_DESCRIPTOR_1(img, text_mask))  # add "idx: descriptor" pair
-            query_set[idx] = set_images
-        else:
+        set_images = []
+        for img in imgs:
             text_mask = TEXT_DETECTOR.get_text_mask(img)
-            query_set[idx] = TEXTURE_DESCRIPTOR_1(img, text_mask)
-
-    ref_set = {}
-    for img_path in tqdm(
-        REF_IMG_DIR.glob("*.jpg"),
-        desc="Computing descriptors for the reference set",
-        total=len(list(REF_IMG_DIR.glob("*.jpg"))),
-    ):
-        idx = int(img_path.stem[-5:])
-        img = cv2.imread(str(img_path))
-        ref_set[idx] = TEXTURE_DESCRIPTOR_1(img)
-
-
-    if v2:
-        result = []
-        for i in range(len(query_set)):
-            q_list = []
-            for query in query_set[i]:
-                q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
-            result.append(q_list)
+            set_images.append(TEXTURE_DESCRIPTOR(img, text_mask)) 
+        query_set[idx] = set_images
     else:
-        queries = [[idx] for idx in range(len(query_set))]
-        result = [
-            retrieve(query_set[query[0]], ref_set, K, DISTANCE_FN)
-            for query in queries
-        ]
+        query_set[idx] = TEXTURE_DESCRIPTOR(img) 
 
-    # evaluate results
-    metric = mapk(gt, result, k=10)
-    print(metric)
+ref_set = {}
+for img_path in tqdm(
+    REF_IMG_DIR.glob("*.jpg"),
+    desc="Computing descriptors for the reference set",
+    total=len(list(REF_IMG_DIR.glob("*.jpg"))),
+):
+    idx = int(img_path.stem[-5:])
+    img = Image.open(img_path)
+    img = np.array(img)
+    ref_set[idx] = TEXTURE_DESCRIPTOR[0](img)  # add "idx: descriptor" pair
+
+if USE_V2:
+    result = []
+    for i in range(len(query_set)):
+        q_list = []
+        for query in query_set[i]:
+            q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
+        result.append(q_list)
+else:
+    result = []
+    for i in range(len(query_set)):
+        result.append(retrieve(query_set[i], ref_set, K, DISTANCE_FN))
+    
+# evaluate results
+if USE_V2:
+    metric = mapk(gt, result, k=5)
+else:
+    metric = mapk_v1(gt, result, k=1)
+
+print(metric)
+
