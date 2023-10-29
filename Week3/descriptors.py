@@ -122,6 +122,7 @@ class DiscreteCosineTransform:
         grayscale_image = cv2.resize(grayscale_image, (c, r))
 
         if mask is not None:
+            mask = cv2.resize(mask, (c, r))
             grayscale_image = cv2.bitwise_and(
                 grayscale_image, grayscale_image, mask=mask
             )
