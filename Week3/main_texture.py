@@ -6,10 +6,9 @@ from distances import *
 from retrieval import retrieve
 from tqdm import tqdm
 from bg_removal import *
-import optuna
 import pandas as pd
 import os
-from test_retrieval import mapk as mapk_v1
+from utils import mapk as mapk_v1
 
 def apk(actual, predicted, k=10):
     """
