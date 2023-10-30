@@ -127,9 +127,20 @@ if v2:
         result_dict = {}
         for idx in range(len(query_set_texture)):
             q_list = []
-            for query in query_set_texture[idx]:
-                q_list.append(retrieve_combined(query_set_texture[query], ref_set_texture, DISTANCE_FN_TEXTURE, weight_1,
-                          query_set_color[query], ref_set_color, DISTANCE_FN_COLOR, weight_2, K))
+            for i, query in enumerate(query_set_texture[idx]):
+                q_list.append(
+                    retrieve_combined(
+                        query,
+                        ref_set_texture,
+                        DISTANCE_FN_TEXTURE,
+                        weight_1,
+                        query_set_color[idx][i],
+                        ref_set_color,
+                        DISTANCE_FN_COLOR,
+                        weight_2,
+                        K,
+                    )
+                )
             result_dict[idx] = q_list
 
         result = Compare_Artist.compare_multiple_paintings_artist(result_dict, query_artist)
