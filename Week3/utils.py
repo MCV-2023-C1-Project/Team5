@@ -115,3 +115,38 @@ def compute_mapk(gt,hypo,k_val):
             apk_list.append(apk_val)
             
     return np.mean(apk_list)
+
+def multi_mapk(actual, predicted, k=10):
+    """
+    Computes the mean average precision at k.
+
+    This function computes the mean average prescision at k between two lists
+    of lists of items.
+
+    Parameters
+    ----------
+    actual : list
+             A list of lists of elements that are to be predicted 
+             (order doesn't matter in the lists)
+    predicted : list
+                A list of lists of predicted elements
+                (order matters in the lists)
+    k : int, optional
+        The maximum number of predicted elements
+
+    Returns
+    -------
+    score : double
+            The mean average precision at k over the input lists
+
+    """
+
+    result = []
+    for a, p in zip(actual, predicted):
+        if len(a) != len(p):
+            result.append(0)
+        else:
+            for b, c in zip(a, p):
+                    result.append(apk([b], c, k))
+    mean = np.mean(result)
+    return mean
