@@ -719,9 +719,9 @@ class RemoveBackgroundV3(RemoveBackground):
 
         contours = self.delete_small_contour(image, contours)
         # Draw contours on the image
-        cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 2)  # -1 means draw all contours
-        plt.imshow(image_with_contours)
-        plt.show()
+        # cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 2)  # -1 means draw all contours
+        # plt.imshow(image_with_contours)
+        # plt.show()
 
         def get_contour_centroid(contour):
             M = cv2.moments(contour)
