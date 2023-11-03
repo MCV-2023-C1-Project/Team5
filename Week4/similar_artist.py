@@ -1,6 +1,5 @@
 import Levenshtein
 import pandas as pd
-from pathlib import Path
 import pytesseract
 import re
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -21,7 +20,6 @@ class SimilarArtist:
                 min_distance = distance
                 most_similar = candidate
 
-        #print(f"The most similar string to '{target}' is: '{most_similar}'")
         return most_similar
 
 
@@ -40,13 +38,3 @@ class SimilarArtist:
         text = pytesseract.image_to_string(image)
         text = re.sub(r'[^a-zA-Z\s]', '', text)
         return self.text_similarities(text) if self.valid_text(text) else [None]
-
-
-# if __name__ == "__main__":
-#     target_string = "Ponce"
-#     REF_CSV_PATH = Path(r"C:\Users\maria\PycharmProjects\C1_CVC\data\Week3\paintings_db_w2d1.csv")
-#     ref_set = pd.read_csv(REF_CSV_PATH)
-#     Similar_Artist = SimilarArtist(REF_CSV_PATH)
-
-#     most_similar = Similar_Artist.most_similar_string(target_string, ref_set)
-

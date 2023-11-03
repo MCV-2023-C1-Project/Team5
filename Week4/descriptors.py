@@ -1,14 +1,11 @@
-from typing import Any
 import numpy as np
 import cv2
-import cv
 from skimage import feature
 import pytesseract
 import re
-import easyocr
 import pandas as pd
 import Levenshtein
-import os
+
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 

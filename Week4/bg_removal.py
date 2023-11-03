@@ -8,7 +8,6 @@ from filters import *
 from text_detection import *
 from noise_removal import *
 from utils import *
-from bck_remov2 import *
 from descriptors import ArtistReader
 
 
