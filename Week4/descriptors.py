@@ -270,3 +270,12 @@ class ORBExtractor:
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         keypoints, descriptors = self.orb.detectAndCompute(image, mask)
         return keypoints, descriptors
+    
+
+class KAZEExtractor:
+    def __init__(self):
+        self.kaze = cv2.KAZE_create()
+
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        keypoints, descriptors = self.kaze.detectAndCompute(image, mask)
+        return keypoints, descriptors

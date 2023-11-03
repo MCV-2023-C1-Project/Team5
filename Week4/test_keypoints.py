@@ -15,10 +15,13 @@ from bg_removal import *
 
 # set paths
 QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w4"))
+
 sift_extractor = SIFTExtractor()
 color_sift_extractor = ColorSIFTExtractor()
 gloh_extractor = GLOHExtractor()
 orb_extractor = ORBExtractor()
+kaze_extractor = KAZEExtractor()
+
 bg_removal = RemoveBackgroundV3()
 NOISE_FILTER = Median()
 NAME_FILTER = Average()
@@ -44,7 +47,8 @@ for img_path in tqdm(
         keypoints_color_sift, descriptors_color_sift = color_sift_extractor(image)
         keypoints_gloh, descriptors_gloh = gloh_extractor(image)
         keypoints_orb, descriptors_orb = orb_extractor(image)
-
+        keypoints_kaze, descriptors_kaze = kaze_extractor(image)
+        
         # Draw keypoints on the original image
         k1 = cv2.drawKeypoints(image, keypoints_sift, outImage=None,
                                                 flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
@@ -54,8 +58,11 @@ for img_path in tqdm(
                                                 flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         k4 = cv2.drawKeypoints(image, keypoints_orb, outImage=None,
                                                 flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        k5 = cv2.drawKeypoints(image, keypoints_kaze, outImage=None,
+                                                flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
         # Show the image with keypoints
-        image_with_keypoints = np.concatenate((k1, k2, k3, k4), axis=1)
-        cv2.imshow("Image with Keypoints: SIFT, Color SIFT, GLOH, ORB", image_with_keypoints)
+        image_with_keypoints = np.concatenate((k1, k2, k3, k4, k5), axis=1)
+        cv2.imshow("Image with Keypoints: SIFT, Color SIFT, GLOH, ORB, KAZE", image_with_keypoints)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
