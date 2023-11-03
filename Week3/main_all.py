@@ -37,7 +37,7 @@ DISTANCE_FN_COLOR = Intersection()
 NOISE_FILTER = Median()
 NAME_FILTER = Average()
 TEXT_DETECTOR = TextDetection()
-HAS_NOISE = Salt_Pepper_Noise(
+HAS_NOISE = SaltPepperNoise(
     noise_filter=NOISE_FILTER, name_filter=NAME_FILTER, text_detector=TEXT_DETECTOR
 )
 

@@ -950,35 +950,35 @@ class RemoveBackgroundV3(RemoveBackground):
 
         return self.separate_image(image, mask, n_imgs)
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    QUERY_IMG_DIR = Path(os.path.join("data", "Week4", "qsd1_w4"))
-    path_csv_bbdd = Path("paintings_db_bbdd.csv")
-    path_txt_artists = Path(os.path.join(QUERY_IMG_DIR, "artists"))
+#     QUERY_IMG_DIR = Path(os.path.join("data", "Week4", "qsd1_w4"))
+#     path_csv_bbdd = Path("paintings_db_bbdd.csv")
+#     path_txt_artists = Path(os.path.join(QUERY_IMG_DIR, "artists"))
 
-    NOISE_FILTER = Median()
-    NAME_FILTER = Average()
-    TEXT_DETECTOR = TextDetection()
-    HAS_NOISE = Salt_Pepper_Noise(noise_filter=NOISE_FILTER,
-                                  name_filter=NAME_FILTER,
-                                  text_detector=TEXT_DETECTOR)
+#     NOISE_FILTER = Median()
+#     NAME_FILTER = Average()
+#     TEXT_DETECTOR = TextDetection()
+#     HAS_NOISE = SaltPepperNoise(noise_filter=NOISE_FILTER,
+#                                   name_filter=NAME_FILTER,
+#                                   text_detector=TEXT_DETECTOR)
 
-    Similar_Artist = ArtistReader(TEXT_DETECTOR,
-                                  path_bbdd_csv=path_csv_bbdd,
-                                  save_txt_path=path_txt_artists)
+#     Similar_Artist = ArtistReader(TEXT_DETECTOR,
+#                                   path_bbdd_csv=path_csv_bbdd,
+#                                   save_txt_path=path_txt_artists)
 
-    BG_REMOVAL_FN = RemoveBackgroundV3()
-    for img_path in QUERY_IMG_DIR.glob("*.jpg"):
-        idx = int(img_path.stem[-5:])
-        img = Image.open(img_path)
-        img = np.array(img)
-        denoised_image = HAS_NOISE(img)
-        # Remove noise
-        imgs = BG_REMOVAL_FN(denoised_image)
-        mask, _ = BG_REMOVAL_FN.get_mask(denoised_image)
-        # Image.fromarray(mask).save(Path(os.path.join("data\Week4\qsd1_w4", "masks",
-        #                                             "{}.png".format(idx))))
-        for i, img in enumerate(imgs):
-            # Image.fromarray(img).save(Path(os.path.join("data\Week4\qsd1_w4", "bkg",
-            #                                                "{}_{}.png".format(idx, i))))
-            text_mask = TEXT_DETECTOR(img)
+#     BG_REMOVAL_FN = RemoveBackgroundV3()
+#     for img_path in QUERY_IMG_DIR.glob("*.jpg"):
+#         idx = int(img_path.stem[-5:])
+#         img = Image.open(img_path)
+#         img = np.array(img)
+#         denoised_image = HAS_NOISE(img)
+#         # Remove noise
+#         imgs = BG_REMOVAL_FN(denoised_image)
+#         mask, _ = BG_REMOVAL_FN.get_mask(denoised_image)
+#         # Image.fromarray(mask).save(Path(os.path.join("data\Week4\qsd1_w4", "masks",
+#         #                                             "{}.png".format(idx))))
+#         for i, img in enumerate(imgs):
+#             # Image.fromarray(img).save(Path(os.path.join("data\Week4\qsd1_w4", "bkg",
+#             #                                                "{}_{}.png".format(idx, i))))
+#             text_mask = TEXT_DETECTOR(img)

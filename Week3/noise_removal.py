@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from skimage.restoration import estimate_sigma
 
 
-class Salt_Pepper_Noise:
+class SaltPepperNoise:
     def __init__(self, std_mean=9, std_median=7,
                  noise_filter=None, name_filter=None,
                  text_detector=None):
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "testing"))
 
     NOISE_FILTER = Median()
-    HAS_NOISE = Salt_Pepper_Noise()
+    HAS_NOISE = SaltPepperNoise()
     Text_Detection = TextDetection()
 
     for img_path in QUERY_IMG_DIR.glob("*.jpg"):

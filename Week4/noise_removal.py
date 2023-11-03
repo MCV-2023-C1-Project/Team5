@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from skimage.restoration import estimate_sigma
 
 
-class Salt_Pepper_Noise:
+class SaltPepperNoise:
     def __init__(self, std_mean=9, std_median=7,
                  noise_filter=None, name_filter=None,
                  text_detector=None):
@@ -82,7 +82,8 @@ class Salt_Pepper_Noise:
 
     def filter_name(self, original_image, image):
         bbox_coords = self.text_detector.detect_text(image)
-        image1 = image
+        if bbox_coords is None:
+            return image
         x, y, w, h = bbox_coords
         name_img = original_image[y: y + h, x: x + w]
         den_name = self.name_filter(name_img, kernel_size=3)
@@ -102,24 +103,21 @@ class Salt_Pepper_Noise:
         return image
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "testing"))
+#     QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "testing"))
 
-    NOISE_FILTER = Median()
-    HAS_NOISE = Salt_Pepper_Noise()
-    Text_Detection = TextDetection()
+#     NOISE_FILTER = Median()
+#     HAS_NOISE = SaltPepperNoise()
+#     Text_Detection = TextDetection()
 
-    for img_path in QUERY_IMG_DIR.glob("*.jpg"):
-        idx = int(img_path.stem[-5:])
-        img = Image.open(img_path)
-        image = np.array(img)
+#     for img_path in QUERY_IMG_DIR.glob("*.jpg"):
+#         idx = int(img_path.stem[-5:])
+#         img = Image.open(img_path)
+#         image = np.array(img)
 
-        # Check if the image has salt-and-pepper noise
-        denoised_image = HAS_NOISE(image)
+#         # Check if the image has salt-and-pepper noise
+#         denoised_image = HAS_NOISE(image)
 
-        if True:
-            Image.fromarray(denoised_image).save("denoised/qsd1/{}.png".format(idx))
-
-
-
+#         if True:
+#             Image.fromarray(denoised_image).save("denoised/qsd1/{}.png".format(idx))

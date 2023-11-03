@@ -126,7 +126,7 @@ class DiscreteCosineTransform:
             )
 
         dct_image = cv2.dct(np.float32(grayscale_image) / 255.0)
-        coeffs = self.compute_zig_zag(dct_image[:6, :6])[:self.num_coeff]
+        coeffs = self.compute_zig_zag(dct_image[:6, :6])[: self.num_coeff]
         return coeffs
 
 
@@ -143,28 +143,38 @@ class LocalBinaryPattern:
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = (feature.local_binary_pattern(image, self.numPoints, self.radius, method=self.method)).astype(np.uint8)
+        image = (
+            feature.local_binary_pattern(
+                image, self.numPoints, self.radius, method=self.method
+            )
+        ).astype(np.uint8)
         bins = self.numPoints + 2
-        hist = cv2.calcHist([image],[0], mask, [bins], (0, bins))
+        hist = cv2.calcHist([image], [0], mask, [bins], (0, bins))
         hist = cv2.normalize(hist, hist)
         return hist.flatten()
 
 
 class ArtistReader:
-    def __init__(self, text_detector, path_bbdd_csv, save_txt_path
-                 , artists_db=None, distance_fn=None):
+    def __init__(
+        self,
+        text_detector,
+        path_bbdd_csv,
+        save_txt_path,
+        artists_db=None,
+        distance_fn=None,
+    ):
         self.text_detector = text_detector
         self.bbdd_path = path_bbdd_csv
         self.txt_path = save_txt_path
 
-        ref_set = pd.read_csv(self.bbdd_path, encoding='ISO-8859-1')
+        ref_set = pd.read_csv(self.bbdd_path, encoding="ISO-8859-1")
         self.ref_set = {row["idx"]: row["artist"] for _, row in ref_set.iterrows()}
 
         self.artists_db = artists_db
         self.distance_fn = distance_fn
 
     def most_similar_string(self, target):
-        min_distance = float('inf')
+        min_distance = float("inf")
         most_similar = None
 
         for candidate in self.ref_set.values():
@@ -183,7 +193,7 @@ class ArtistReader:
         height = image.shape[0]
         text = None
         for i in range(1, 4):
-            img_part = image[0: i * int(height/4), :]
+            img_part = image[0 : i * int(height / 4), :]
             text = self.text_detector.read_second_try(img_part)
             if text is None:
                 continue
@@ -192,7 +202,7 @@ class ArtistReader:
         return text
 
     def save_txt(self, text, file_name):
-        with open(file_name, 'a') as file:
+        with open(file_name, "a") as file:
             file.write(f"{text}\n")
 
     def __call__(self, img):
@@ -200,9 +210,9 @@ class ArtistReader:
             x, y, w, h = self.text_detector.detect_text(img)
         except TypeError:
             return [None]
-        text_img = img[y: y + h, x: x + w]
+        text_img = img[y : y + h, x : x + w]
         text = pytesseract.image_to_string(text_img)
-        text = re.sub(r'[^a-zA-Z\s]', '', text)
+        text = re.sub(r"[^a-zA-Z\s]", "", text)
         if not self.valid_text(text):
             text = self.emergency_case(img)
         if self.artists_db is None or self.distance_fn is None:
@@ -213,59 +223,50 @@ class ArtistReader:
             return result
 
 
-class SIFT:
-    def __init__(self, num_features: int = 100) -> None:
-        self.num_features = num_features
-        self.sift = cv2.SIFT_create(self.num_features)
+class SIFTExtractor:
+    def __init__(self, num_features: int = 0):
+        self.sift = cv2.SIFT_create(num_features)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        kp = self.sift.detect(gray, None)
-        img = cv2.drawKeypoints(gray, kp, image)
-        #show image keypoints
-        cv2.imshow('sift_keypoints.jpg', img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-class SIFTExtractor:
-    def __init__(self):
-        self.sift = cv2.SIFT_create()
-
-    def compute_features(self, image):
-        keypoints, descriptors = self.sift.detectAndCompute(image, None)
+        keypoints, descriptors = self.sift.detectAndCompute(image, mask=mask)
         return keypoints, descriptors
 
-class HOGExtractor:
-    def __init__(self):
-        self.hog = cv2.HOGDescriptor()
 
-    def compute_features(self, image):
-        grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        keypoints = []
-        descriptors = self.hog.compute(grayscale_image, keypoints=keypoints)
-        return keypoints, descriptors
+class ColorSIFTExtractor(SIFTExtractor):
+    def __init__(self, num_features: int = 0):
+        super().__init__(num_features)
 
-class ColorSIFTExtractor:
-    def __init__(self):
-        self.color_sift = cv2.SIFT_create()
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        b, g, r = cv2.split(image)
 
-    def compute_features(self, image):
-        keypoints, descriptors = self.color_sift.detectAndCompute(image, None)
-        return keypoints, descriptors
+        keypoints_b, descriptors_b = self.sift.detectAndCompute(b, mask)
+        keypoints_g, descriptors_g = self.sift.detectAndCompute(g, mask)
+        keypoints_r, descriptors_r = self.sift.detectAndCompute(r, mask)
+
+        # Concatenate the descriptors for each channel
+        keypoints_color = np.concatenate(
+            (keypoints_r, keypoints_g, keypoints_b), axis=0
+        )
+        descriptors_color = np.concatenate(
+            (descriptors_r, descriptors_g, descriptors_b), axis=0
+        )
+
+        return keypoints_color, descriptors_color
+
 
 class GLOHExtractor:
     def __init__(self):
         self.gloh = cv2.SIFT_create(contrastThreshold=0.03)
 
-    def compute_features(self, image):
-        keypoints, descriptors = self.gloh.detectAndCompute(image, None)
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        keypoints, descriptors = self.gloh.detectAndCompute(image, mask)
         return keypoints, descriptors
 
-class DAISYExtractor:
-    def __init__(self):
-        self.daisy = cv2.xfeatures2d.DAISY_create()
 
-    def compute_features(self, image):
-        keypoints = self.daisy.detect(image)
-        descriptors = self.daisy.compute(image, keypoints=keypoints)
+class ORBExtractor:
+    def __init__(self):
+        self.orb = cv2.ORB_create()
+
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        keypoints, descriptors = self.orb.detectAndCompute(image, mask)
         return keypoints, descriptors

@@ -535,7 +535,7 @@ if __name__ == "__main__":
     NOISE_FILTER = Median()
     NAME_FILTER = Average()
     TEXT_DETECTOR = TextDetection()
-    HAS_NOISE = Salt_Pepper_Noise(noise_filter=NOISE_FILTER,
+    HAS_NOISE = SaltPepperNoise(noise_filter=NOISE_FILTER,
                                   name_filter=NAME_FILTER,
                                   text_detector=TEXT_DETECTOR)
     QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd2_w3"))
