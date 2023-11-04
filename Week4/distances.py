@@ -112,6 +112,9 @@ class Edit:
 
 class KeypointsMatcher:
     def __init__(self, distance: any, threshold: float, **kwargs):
+        # By default, `distance` is cv.NORM_L2. It is good for SIFT, SURF etc (cv.NORM_L1 is also there). 
+        # For binary string based descriptors like ORB, BRIEF, BRISK etc, cv.NORM_HAMMING should be used, 
+        # which used Hamming distance as measurement. If ORB is using WTA_K == 3 or 4, cv.NORM_HAMMING2 should be used.
         self.matcher = cv2.BFMatcher(distance, crossCheck=True)
         self.threshold = threshold
         self.kwargs = kwargs
