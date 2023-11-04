@@ -255,8 +255,8 @@ class ColorSIFTExtractor(SIFTExtractor):
 
 
 class GLOHExtractor:
-    def __init__(self):
-        self.gloh = cv2.SIFT_create(contrastThreshold=0.03)
+    def __init__(self, contrast_threshold: float = 0.03):
+        self.gloh = cv2.SIFT_create(contrastThreshold=contrast_threshold)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         keypoints, descriptors = self.gloh.detectAndCompute(image, mask)
@@ -270,7 +270,7 @@ class ORBExtractor:
     def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         keypoints, descriptors = self.orb.detectAndCompute(image, mask)
         return keypoints, descriptors
-    
+
 
 class KAZEExtractor:
     def __init__(self):

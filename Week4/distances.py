@@ -108,3 +108,23 @@ class Edit:
         else:
             result = np.inf
         return result
+
+
+class KeypointsMatcher:
+    def __init__(self, distance: any, threshold: float, **kwargs):
+        self.matcher = cv2.BFMatcher(distance, crossCheck=True)
+        self.threshold = threshold
+        self.kwargs = kwargs
+
+    def get_matches(self, a: np.ndarray, b: np.ndarray) -> list:
+        if a is None or b is None:
+            return []
+        
+        a = a.astype(np.float32)
+        b = b.astype(np.float32)
+        matches = self.matcher.match(a, b)
+        matches = sorted(matches, key=lambda x: x.distance)
+        return matches
+
+    def __call__(self, a: np.ndarray, b: np.ndarray) -> int:
+        return len(self.get_matches(a, b))
