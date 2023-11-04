@@ -152,15 +152,17 @@ class TextDetection_W4:
         gradient = gradient * saturation
 
         # Binarize
-        _, binary = cv2.threshold(gradient, 100, 255, cv2.THRESH_BINARY)
-
+        _, binary = cv2.threshold(gradient, np.mean(gray), 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        plt.imshow(binary)
+        plt.title("Binary")
+        plt.show()
         binary1 = self.close_then_open(binary, np.ones((1, int(image.shape[1] / 25))))
 
         binary2 = self.close_then_open(binary1, np.ones((1, int(image.shape[1] / 10))))
         plt.imshow(binary2)
         plt.title("Binary 2")
         plt.show()
-        print(f"Binary Mean: {np.mean(binary2)}")
+        # print(f"Binary Mean: {np.mean(binary2)}")
 
         # binary3 = self.close_then_open(binary2, np.ones((1, int(image.shape[1] / 5))))
         # plt.imshow(binary3)
