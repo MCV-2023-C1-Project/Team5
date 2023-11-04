@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import os
 from filters import *
-from text_detection_w4 import TextDetection_W4
+from text_detection import TextDetection_W4
 from text_detection import TextDetection
 from noise_removal import *
 from utils import *

@@ -15,6 +15,7 @@ from bg_removal import *
 
 # set paths
 QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w4"))
+#QUERY_IMG_DIR = Path(os.path.join("..", "data", "Week4", "qsd1_w4"))
 
 sift_extractor = SIFTExtractor()
 color_sift_extractor = ColorSIFTExtractor()
@@ -66,3 +67,4 @@ for img_path in tqdm(
         cv2.imshow("Image with Keypoints: SIFT, Color SIFT, GLOH, ORB, KAZE", image_with_keypoints)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        #cv2.imwrite("results/keypoints/week4_sift_color_sift_gloh_orb_kaze_keypoints_"+str(i)+".jpg", image_with_keypoints)
