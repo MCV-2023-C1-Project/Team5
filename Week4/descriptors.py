@@ -236,12 +236,18 @@ class ColorSIFTExtractor(SIFTExtractor):
     def __init__(self, num_features: int = 0):
         super().__init__(num_features)
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> (np.ndarray,  np.ndarray):
         b, g, r = cv2.split(image)
 
         keypoints_b, descriptors_b = self.sift.detectAndCompute(b, mask)
         keypoints_g, descriptors_g = self.sift.detectAndCompute(g, mask)
         keypoints_r, descriptors_r = self.sift.detectAndCompute(r, mask)
+        if (
+            descriptors_b is None
+            or descriptors_g is None
+            or descriptors_r is None
+        ):
+            return None, None
 
         # Concatenate the descriptors for each channel
         keypoints_color = np.concatenate(
@@ -258,7 +264,7 @@ class GLOHExtractor:
     def __init__(self, contrast_threshold: float = 0.03):
         self.gloh = cv2.SIFT_create(contrastThreshold=contrast_threshold)
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> (np.ndarray,  np.ndarray):
         keypoints, descriptors = self.gloh.detectAndCompute(image, mask)
         return keypoints, descriptors
 
@@ -267,7 +273,7 @@ class ORBExtractor:
     def __init__(self):
         self.orb = cv2.ORB_create()
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> (np.ndarray,  np.ndarray):
         keypoints, descriptors = self.orb.detectAndCompute(image, mask)
         return keypoints, descriptors
 
@@ -276,6 +282,6 @@ class KAZEExtractor:
     def __init__(self):
         self.kaze = cv2.KAZE_create()
 
-    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def __call__(self, image: np.ndarray, mask: np.ndarray = None) -> (np.ndarray,  np.ndarray):
         keypoints, descriptors = self.kaze.detectAndCompute(image, mask)
         return keypoints, descriptors
