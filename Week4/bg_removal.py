@@ -687,7 +687,7 @@ class RemoveBackgroundV3(RemoveBackground):
         contour_l = []
         for c in contour:
             if cv2.contourArea(c) > 0.05 * image.size:
-                if cv2.contourArea(c) < 0.95 * image.size:
+                if cv2.contourArea(c) < 0.99 * image.size:
                     contour_l.append(c)
 
         return contour_l
@@ -699,7 +699,7 @@ class RemoveBackgroundV3(RemoveBackground):
         # c_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         c_img = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)[:, :, 0]
         image = np.array(c_img)
-        edged = cv2.Canny(image, 20, 100)
+        edged = cv2.Canny(image, 25, 100)
         kernel = np.ones((3, 3), np.uint8)
         dilated = cv2.dilate(edged, kernel, iterations=3)
 
@@ -716,10 +716,13 @@ class RemoveBackgroundV3(RemoveBackground):
             contours, key=lambda x: cv2.contourArea(x, True), reverse=False
         )[0:10]
         image_with_contours = image.copy()
-
+        # cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 4)  # -1 means draw all contours
+        # plt.imshow(image_with_contours)
+        # plt.show()
         contours = self.delete_small_contour(image, contours)
+        image_with_contours = image.copy()
         # Draw contours on the image
-        # cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 2)  # -1 means draw all contours
+        # cv2.drawContours(image_with_contours, contours, -1, (0, 255, 0), 4)  # -1 means draw all contours
         # plt.imshow(image_with_contours)
         # plt.show()
 
@@ -900,11 +903,11 @@ class RemoveBackgroundV3(RemoveBackground):
             try:
                 w_mid, h_mid = self.search_middle(image)
                 if w_mid != 0:
-                    mask = self.crop_and_merge_masks(image, w_mid, axis=1)
+                    mask = self.crop_and_merge_masks(image, [w_mid], axis=1)
                     return mask, 1
 
                 elif h_mid != 0:
-                    mask = self.crop_and_merge_masks(image, h_mid, axis=0)
+                    mask = self.crop_and_merge_masks(image, [h_mid], axis=0)
                     return mask, 1
             except:
                 # Get three channels for the get_mask function
@@ -963,7 +966,7 @@ if __name__ == "__main__":
 
     NOISE_FILTER = Median()
     NAME_FILTER = Average()
-    TEXT_DETECTOR = TextDetection()
+    TEXT_DETECTOR = TextDetection_W4()
     HAS_NOISE = SaltPepperNoise(noise_filter=NOISE_FILTER,
                                   name_filter=NAME_FILTER,
                                   text_detector=TEXT_DETECTOR)
@@ -972,18 +975,31 @@ if __name__ == "__main__":
                                   path_bbdd_csv=path_csv_bbdd,
                                   save_txt_path=path_txt_artists)
 
+    os.makedirs(path_txt_artists, exist_ok=True)
     BG_REMOVAL_FN = RemoveBackgroundV3()
+
     for img_path in QUERY_IMG_DIR.glob("*.jpg"):
         idx = int(img_path.stem[-5:])
+        # if idx < 21:
+        #     continue
+        print(idx)
         img = Image.open(img_path)
         img = np.array(img)
+        file_name = os.path.join(path_txt_artists, f"{idx:05d}.txt")
+        with open(file_name, 'w'):
+            pass
         denoised_image = HAS_NOISE(img)
         # Remove noise
         imgs = BG_REMOVAL_FN(denoised_image)
-        # mask, _ = BG_REMOVAL_FN.get_mask(denoised_image)
-        # Image.fromarray(mask).save(Path(os.path.join("data\Week4\qsd1_w4", "masks",
-        #                                             "{}.png".format(idx))))
+        mask, _ = BG_REMOVAL_FN.get_mask(denoised_image)
+        try:
+            Image.fromarray(mask).save(Path(os.path.join("data\Week4\qsd1_w4", "masks",
+                                                        "{}.png".format(idx))))
+        except:
+            pass
         for i, img in enumerate(imgs):
             Image.fromarray(img).save(Path(os.path.join("data\Week4\qsd1_w4", "bkg",
                                                            "{}_{}.png".format(idx, i))))
             text_mask = TEXT_DETECTOR(img)
+            artist = Similar_Artist(img)
+            Similar_Artist.save_txt(artist, file_name)

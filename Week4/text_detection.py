@@ -143,7 +143,7 @@ class TextDetection_W4:
         saturation = hsv[:, :, 1] < np.mean(hsv[:, :, 1])
 
         # Morphological gradients
-        kernel = np.ones((4, 4), np.uint8)
+        kernel = np.ones((3, 3), np.uint8)
         dilate = cv2.dilate(gray, kernel, iterations=1)
         eorde = cv2.erode(gray, kernel, iterations=1)
         gradient = dilate - eorde
@@ -152,16 +152,16 @@ class TextDetection_W4:
         gradient = gradient * saturation
 
         # Binarize
-        _, binary = cv2.threshold(gradient, np.mean(gray), 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        plt.imshow(binary)
-        plt.title("Binary")
-        plt.show()
+        _, binary = cv2.threshold(gradient, np.mean(gray), 255, cv2.THRESH_BINARY)
+        # plt.imshow(binary)
+        # plt.title("Binary")
+        # plt.show()
         binary1 = self.close_then_open(binary, np.ones((1, int(image.shape[1] / 25))))
 
         binary2 = self.close_then_open(binary1, np.ones((1, int(image.shape[1] / 10))))
-        plt.imshow(binary2)
-        plt.title("Binary 2")
-        plt.show()
+        # plt.imshow(binary2)
+        # plt.title("Binary 2")
+        # plt.show()
         # print(f"Binary Mean: {np.mean(binary2)}")
 
         # binary3 = self.close_then_open(binary2, np.ones((1, int(image.shape[1] / 5))))
@@ -238,7 +238,7 @@ class TextDetection_W4:
                         mean_intensity = np.mean(sub_image)
                         score = abs(mean_intensity - threshold)
 
-                        if normalized_contrast > max_contrast: # and len(text) >= max_text:
+                        if len(text) >= max_text: # normalized_contrast > max_contrast:
                             print(f"Text: {text}")
                             max_contrast = normalized_contrast
                             best_bbox = bbox
@@ -252,8 +252,8 @@ class TextDetection_W4:
         mask = np.full_like(image[:, :, 0], 255, np.uint8)
         x, y, w, h = bbox_coords
         mask[y: y + h, x: x + w] = 0
-        plt.imshow(image[y: y + h, x: x + w])
-        plt.show()
+        # plt.imshow(image[y: y + h, x: x + w])
+        # plt.show()
         return mask
 
     def read_second_try(self, image):
