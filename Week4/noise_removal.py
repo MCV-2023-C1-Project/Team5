@@ -62,7 +62,7 @@ class SaltPepperNoise:
         # #self.plot_images(image, contrast_map)
         # #self.plot_std_dev(contrast_map, idx=idx)
 
-        return True if average_noise >= 9 else False
+        return True if average_noise >= 8 else False
 
 
     def kernel_size(self, image, size_factor=0.008):
