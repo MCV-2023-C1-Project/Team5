@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from descriptors import *
 from distances import *
-from retrieval import retrieve
+from retrieval import retrieve, match
 import pickle
 from tqdm import tqdm
 from bg_removal import *
@@ -22,14 +22,11 @@ RESULT_OUT_PATH = Path(os.path.join("results.pkl"))
     COLOR HISTOGRAM
 """
 BASE_DESCRIPTOR = Histogram(color_model="yuv", bins=25, range=(0, 255))
-# BASE_DESCRIPTOR = LocalBinaryPattern(numPoints=8, radius=1)
-SPLIT_SHAPE = (20, 20)  # (1, 1) is the same as not making spatial at all
+SPLIT_SHAPE = (20, 20)
 DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)
-K = 20
+K = 10
 DISTANCE_FN = Intersection()
-
-# set hyper-parameters
-DESCRIPTOR_FN = SIFTExtractor()
+KEPOINTS_FN = SIFTExtractor()
 NOISE_FILTER = Median()
 NAME_FILTER = Average()
 TEXT_DETECTOR = TextDetectionV2()
@@ -41,8 +38,8 @@ BG_REMOVAL_FN = RemoveBackgroundV3()
 path_csv_bbdd = Path("paintings_db_bbdd.csv")
 path_txt_artists = Path(os.path.join(QUERY_IMG_DIR, "artists"))
 
-Compare_Artist = CompareArtist(path_csv_bbdd=path_csv_bbdd)
-Similar_Artist = ArtistReader(TEXT_DETECTOR,
+COMPARE_ARTIST = CompareArtist(path_csv_bbdd=path_csv_bbdd)
+SIMILAR_ARTIST = ArtistReader(TEXT_DETECTOR,
                               path_bbdd_csv=path_csv_bbdd,
                               save_txt_path=path_txt_artists)
 
@@ -51,6 +48,7 @@ Similar_Artist = ArtistReader(TEXT_DETECTOR,
 """
 query_set = {}
 query_artist = {}
+query_set_keypoints = {}
 for img_path in tqdm(
     QUERY_IMG_DIR.glob("*.jpg"),
     desc="Computing descriptors for the query set",
@@ -72,17 +70,22 @@ for img_path in tqdm(
         pass
     imgs = BG_REMOVAL_FN(denoised_img)
     set_images = []
+    set_images_keypoints = []
     artists = []
-    for i, img in enumerate(imgs):
+    for img in imgs:
         text_mask = TEXT_DETECTOR(img)
         set_images.append(DESCRIPTOR_FN(img, text_mask))
-        artist = Similar_Artist(img)
-        Similar_Artist.save_txt(artist, file_name)
+        _, keypoints_descriptor = KEPOINTS_FN(img, text_mask)
+        set_images_keypoints.append(keypoints_descriptor)
+        artist = SIMILAR_ARTIST(img)
+        SIMILAR_ARTIST.save_txt(artist, file_name)
         artists.append(artist)
     query_set[idx] = set_images
     query_artist[idx] = artists
+    query_set_keypoints[idx] = set_images_keypoints
 
 ref_set = {}
+ref_set_keypoints = {}
 for img_path in tqdm(
     REF_IMG_DIR.glob("*.jpg"),
     desc="Computing descriptors for the reference set",
@@ -91,7 +94,9 @@ for img_path in tqdm(
     idx = int(img_path.stem[-5:])
     img = Image.open(img_path)
     img = np.array(img)
-    ref_set[idx] = DESCRIPTOR_FN(img)  # add "idx: descriptor" pair
+    ref_set[idx] = DESCRIPTOR_FN(img) 
+    _, keypoints_descriptor = KEPOINTS_FN(img)
+    ref_set_keypoints[idx] = keypoints_descriptor
 
 """
     GET RETRIEVAL FOR COLOR + TEXT
@@ -108,7 +113,7 @@ if with_text_combination:
             q_list.append(retrieve(query, ref_set, K, DISTANCE_FN))
         result_dict[idx] = q_list
 
-    result = Compare_Artist.compare_multiple_paintings_artist(result_dict, query_artist)
+    result = COMPARE_ARTIST.compare_multiple_paintings_artist(result_dict, query_artist)
 else:
     """
             Retrieval without Text
@@ -127,47 +132,22 @@ else:
 """
     KEYPOINTS
 """
+pickle.dump(result, open("result.pkl", "wb"))
+pickle.dump(query_set_keypoints, open("query_set_keypoints.pkl", "wb"))
+pickle.dump(ref_set_keypoints, open("ref_set_keypoints.pkl", "wb"))
 
-query_set = {}
-for img_path in tqdm(
-    QUERY_IMG_DIR.glob("*.jpg"),
-    desc="Computing descriptors for the query set",
-    total=len(list(QUERY_IMG_DIR.glob("*.jpg"))),
-):
-    idx = int(img_path.stem[-5:])
-    img = Image.open(img_path)
-    img = np.array(img)
-    denoised_img = HAS_NOISE(img)
-    imgs = BG_REMOVAL_FN(denoised_img)
-    set_images = []
-    for i, img in enumerate(imgs):
-        text_mask = TEXT_DETECTOR.get_text_mask(img)
-        _, descriptors = DESCRIPTOR_FN(img, text_mask)
-        set_images.append(descriptors)
+# result = pickle.load(open("result.pkl", "rb"))
+# query_set_keypoints = pickle.load(open("query_set_keypoints.pkl", "rb"))
+# ref_set_keypoints = pickle.load(open("ref_set_keypoints.pkl", "rb"))
 
-    query_set[idx] = set_images
-
-ref_set = {}
-for img_path in tqdm(
-    REF_IMG_DIR.glob("*.jpg"),
-    desc="Computing descriptors for the reference set",
-    total=len(list(REF_IMG_DIR.glob("*.jpg"))),
-):
-    idx = int(img_path.stem[-5:])
-    img = Image.open(img_path)
-    img = np.array(img)
-    _, descriptors = DESCRIPTOR_FN(img)
-    ref_set[idx] = descriptors
-
-result = []
-for i in range(len(query_set)):
+result_keypoints = []    
+for i in tqdm(range(len(query_set_keypoints)), desc="Matching keypoints for query images"):
     q_list = []
-    print("Evaluating image {}...".format(i))
-    for query in query_set[i]:
-        q_list.append(retrieve(query, ref_set))
-    result.append(q_list)
+    for j, query in enumerate(query_set_keypoints[i]):
+        q_list.append(match(query, ref_set_keypoints, result[i][j]))
+    result_keypoints.append(q_list)
 
-print(result)
+print(result_keypoints)
 
 with open(RESULT_OUT_PATH, "wb") as file:
     pickle.dump(result, file)

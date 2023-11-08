@@ -27,41 +27,44 @@ kaze_extractor = KAZEExtractor()
 bg_removal = RemoveBackgroundV3()
 NOISE_FILTER = Median()
 NAME_FILTER = Average()
-TEXT_DETECTOR = TextDetection()
+TEXT_DETECTOR = TextDetectionV2()
 HAS_NOISE = SaltPepperNoise(noise_filter=NOISE_FILTER,
                                 name_filter=NAME_FILTER,
                                 text_detector=TEXT_DETECTOR)
 
 def matchers_example():
-    q_img = cv2.imread(str(QUERY_IMG_DIR / "00002.jpg"))
+    q_img = cv2.imread(str(QUERY_IMG_DIR / "00005.jpg"))
     denoised_image = HAS_NOISE(q_img) 
     imgs = bg_removal(denoised_image)
     matcher = KeypointsMatcher(cv2.NORM_L2, 0.75)
     results = {}
-    
     for image in imgs:
-        _, descriptors_sift = sift_extractor(image)
-        # _, descriptors_color_sift = color_sift_extractor(image)
-        # _, descriptors_gloh = gloh_extractor(image)
-        # _, descriptors_orb = orb_extractor(image)
-        # _, descriptors_kaze = kaze_extractor(image)
-
+        text_mask = TEXT_DETECTOR.get_text_mask(image)
+        
+        _, descriptors_sift = sift_extractor(image, text_mask)
+        # _, descriptors_color_sift = color_sift_extractor(image, text_mask)
+        # _, descriptors_gloh = gloh_extractor(image, text_mask)
+        # _, descriptors_orb = orb_extractor(image, text_mask)
+        # _, descriptors_kaze = kaze_extractor(image, text_mask)
+        
         for img_path in tqdm(
             REF_IMG_DIR.glob("*.jpg"),
             desc="Computing keypoints for the reference set",
             total=len(list(REF_IMG_DIR.glob("*.jpg"))),
-        ):
+        ):    
             ref_image = cv2.imread(str(img_path))
             _, ref_descriptors_sift = sift_extractor(ref_image)
             # _, ref_descriptors_color_sift = color_sift_extractor(ref_image)
             # _, ref_descriptors_gloh = gloh_extractor(ref_image)
             # _, ref_descriptors_orb = orb_extractor(ref_image)
             # _, ref_descriptors_kaze = kaze_extractor(ref_image)
+
+
             match = matcher(descriptors_sift, ref_descriptors_sift)
-            results.update({img_path.stem[-5:]: match})
+            results.update({int(img_path.stem[-5:]): match})
     
-    sorted_dict = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
-    print(sorted_dict)
+        sorted_dict = dict(sorted(results.items(), key=lambda item: item[1], reverse=True))
+        print(sorted_dict)
 
 def keypoints_example():
     for img_path in tqdm(
