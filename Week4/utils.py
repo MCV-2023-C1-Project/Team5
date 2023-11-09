@@ -150,3 +150,38 @@ def multi_mapk(actual, predicted, k=10):
                     result.append(apk([b], c, k))
     mean = np.mean(result)
     return mean
+
+
+def calculate_f1_score(retrievals, ground_truths):
+    # Initialize counts
+    true_positives, false_positives, false_negatives = 0, 0, 0
+    
+    for retrieval, truth in zip(retrievals, ground_truths):
+        # If both the retrieval and truth are -1, increment true positives
+        if truth == [-1] and retrieval == [[-1]]:
+            true_positives += 1
+            continue
+        
+        # If the truth is not -1 but retrieval is, it's a false negative
+        if truth != [-1] and retrieval == [[-1]]:
+            false_negatives += 1
+            continue
+
+        # If the truth is -1 but retrieval is not, it's a false positive
+        if truth == [-1] and retrieval != [[-1]]:
+            false_positives += 1
+            continue
+        
+        # For other cases where truth is not -1
+        for i, sublist in enumerate(retrieval):
+            if truth[i] in sublist:
+                true_positives += 1
+            else:
+                false_positives += 1
+    
+    # Calculate precision, recall, and F1 score
+    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+    return f1_score
