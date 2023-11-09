@@ -5,7 +5,7 @@ import os
 from utils import *
 
 # set paths
-PRED_RET_PATH = Path("results_10_kaze_no_cross.pkl")
+PRED_RET_PATH = Path("results_15_kaze_th0075.pkl")
 GT_RET_PATH = Path(os.path.join("data", "qsd1_w4", "gt_corresps.pkl"))
 
 pred = pd.read_pickle(PRED_RET_PATH)

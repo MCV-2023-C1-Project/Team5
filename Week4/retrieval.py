@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 MATCHER = KeypointsMatcher(cv2.NORM_L2, 0.75)
-THRESHOLD = 0.3
+THRESHOLD = 0.075
 
 def retrieve(query_descriptor, ref_set, k, distance_function):
     distances = [

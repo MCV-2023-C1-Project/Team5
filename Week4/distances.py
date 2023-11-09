@@ -125,9 +125,14 @@ class KeypointsMatcher:
         
         a = a.astype(np.float32)
         b = b.astype(np.float32)
-        matches = self.matcher.match(a, b)
-        matches = sorted(matches, key=lambda x: x.distance)
-        return matches
+        
+        good_matches = []
+        matches = self.matcher.knnMatch(a, b, k=2)
+        for m, n in matches:
+            if m.distance < self.threshold * n.distance:
+                good_matches.append(m)
+
+        return good_matches
 
     def __call__(self, a: np.ndarray, b: np.ndarray) -> int:
         return len(self.get_matches(a, b))

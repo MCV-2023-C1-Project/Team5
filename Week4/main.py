@@ -16,7 +16,7 @@ from text_combination import *
 # set paths
 QUERY_IMG_DIR = Path(os.path.join("data", "qsd1_w4"))
 REF_IMG_DIR = Path(os.path.join("data", "BBDD"))
-RESULT_OUT_PATH = Path(os.path.join("results_10_kaze.pkl"))
+RESULT_OUT_PATH = Path(os.path.join("results_10_kaze_th0075.pkl"))
 
 """
     COLOR HISTOGRAM
