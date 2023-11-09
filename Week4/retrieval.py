@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 MATCHER = KeypointsMatcher(cv2.NORM_L2, 0.75)
-THRESHOLD = 2000
+THRESHOLD = 0.3
 
 def retrieve(query_descriptor, ref_set, k, distance_function):
     distances = [
@@ -16,13 +16,12 @@ def retrieve(query_descriptor, ref_set, k, distance_function):
     result = sorted_image_indices[:k].tolist()
     return result
 
-def match(query_descriptor: np.ndarray, ref_set: dict, previous_result: list) -> int:
+def match(query_descriptor: np.ndarray, ref_set: dict, previous_result: list, k: int = 10) -> int:
     descriptors = {idx: ref_set[idx] for idx in previous_result}
     matches = {key: MATCHER(query_descriptor, descriptor) for key, descriptor in descriptors.items()}        
     matches = dict(sorted(matches.items(), key=lambda x: x[1], reverse=True))
     
-    for idx, match in matches.items():        
-        if match > THRESHOLD:
-            return int(idx)
+    if list(matches.values())[0] > query_descriptor.shape[0] * THRESHOLD:
+        return list(matches.keys())[:k+1]
  
-    return -1
+    return [-1]
