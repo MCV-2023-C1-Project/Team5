@@ -5,7 +5,7 @@ import pytesseract
 import re
 import easyocr
 import matplotlib.pyplot as plt
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 class TextDetection:
@@ -167,18 +167,22 @@ class TextDetectionV2:
         dilate = cv2.dilate(imbw, kernel, iterations=3)
         edges = cv2.Canny(dilate, 0, 255)
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        parent_contours = [contour for contour, hier in zip(contours, hierarchy[0]) if hier[3] == -1]
-        image_contours = im.copy()
-        cv2.drawContours(image_contours, parent_contours, -1, (0, 255, 0), 2)
 
-        for contour in parent_contours:
-            cx, _ = self.get_contour_centroid(contour)
-            if (0.25*width < cx < 0.75*width):
-                x, y, w, h = cv2.boundingRect(contour)
-                area = w * h
+        try:
+            parent_contours = [contour for contour, hier in zip(contours, hierarchy[0]) if hier[3] == -1]
+            image_contours = im.copy()
+            cv2.drawContours(image_contours, parent_contours, -1, (0, 255, 0), 2)
 
-                if area > 0.001 * im.size and w > h:
-                    bboxes.append([x, y, w, h])
+            for contour in parent_contours:
+                cx, _ = self.get_contour_centroid(contour)
+                if (0.25*width < cx < 0.75*width):
+                    x, y, w, h = cv2.boundingRect(contour)
+                    area = w * h
+
+                    if area > 0.001 * im.size and w > h:
+                        bboxes.append([x, y, w, h])
+        except TypeError:
+            pass
 
         if len(bboxes) == 0:
             return None
