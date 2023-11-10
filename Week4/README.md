@@ -1,5 +1,5 @@
 # C1-Project
-### Week 3 
+### Week 4
 
 To be able to run the code, you need to install the requirements from the requirements.txt file. 
 To do so, you need to run the following command: ```pip3 install -r requirements.txt```
@@ -13,18 +13,19 @@ You should update the paths to be equal to your local paths.
 ```REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))```
 ```RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qsd2_K1.pkl"))```
 
-There is a boolean to decide if use Text combination for reordering the results from color/texture or both.
+There is a boolean to decide if use Text combination for reordering the results from color or directly use only keypoints when 
+set to False.
 ```with_text_combination = True```
 
 Depending on the parameters you want to use, you need to change the values of the variables in the main.py file.
 For using different descriptors you should comment the not wanted descriptors and use only the one you want to use.
 Default parameters for our model are:
 ```BASE_DESCRIPTOR = Histogram(color_model="yuv", bins=25, range=(0, 255))```
-```# BASE_DESCRIPTOR = LocalBinaryPattern(numPoints=8, radius=1)```
 ```SPLIT_SHAPE = (20, 20)  # (1, 1) is the same as not making spatial at all```
 ```DESCRIPTOR_FN = SpatialDescriptor(BASE_DESCRIPTOR, SPLIT_SHAPE)```
-```K = 1```
+```K = 10```
 ```DISTANCE_FN = Intersection()```
+```KEYPOINTS_FN = SIFTExtractor()```
 ```NOISE_FILTER = Median()```
 ```NAME_FILTER = Average()```
 ```TEXT_DETECTOR = TextDetection()```
@@ -46,9 +47,6 @@ A quick explanation of the most relevant files used is shown below:
 - ```text_detection.py``` contains the text detection class.
 - ```text_combination.py``` contains the text combination (to reorder the results) class.
 - ```utils.py``` contains the helper functions used in the code.
-- ```requirements.txt``` contains the libraries needed to run the code.
-- ```score_text.py``` contains the functions used to score the text detection with IoU metric.
-- ```score_masks.py``` contains the functions used to score the masks.
 - ```test_retrieval.py``` contains the functions used to test the retrieval system.
-- ```save_*.py``` contains the functions used to save the necessary files (bbox, masks and cropped images).
+- ```test_keypoints.py``` contains the functions used to test the keypoints system.
 - ```paintings_db_bbdd.csv``` is a CSV file containg the authors names from all the BBDD's paintings.
