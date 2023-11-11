@@ -7,7 +7,6 @@ opencv_python==4.8.1.78
 opencv_python_headless==4.8.1.78
 pandas==2.0.3
 Pillow==10.0.1
-Pillow==10.1.0
 pytesseract==0.3.10
 python_Levenshtein==0.23.0
 scipy==1.11.3
