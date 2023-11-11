@@ -11,7 +11,7 @@ To run the code, you need to execute the following command: ```python3 main.py``
 You should update the paths to be equal to your local paths.
 ```QUERY_IMG_DIR = Path(os.path.join("data", "Week3", "qsd2_w3"))```
 ```REF_IMG_DIR = Path(os.path.join("data", "Week1", "BBDD"))```
-```RESULT_OUT_PATH = Path(os.path.join("results", "color_text_qsd2_K1.pkl"))```
+```RESULT_OUT_PATH = Path(os.path.join("results.pkl"))```
 
 There is a boolean to decide if use Text combination for reordering the results from color or directly use only keypoints when 
 set to False.
